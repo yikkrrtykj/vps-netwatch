@@ -1,0 +1,16 @@
+[Unit]
+Description=vps-netwatch dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/vps-netwatch
+ExecStart=/opt/vps-netwatch/bin/dashboard -config /opt/vps-netwatch/config.yaml
+Restart=on-failure
+RestartSec=5s
+User=root
+
+[Install]
+WantedBy=multi-user.target
+

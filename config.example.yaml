@@ -1,0 +1,51 @@
+dashboard:
+  listen: "0.0.0.0:8787"
+  public_url: "https://watch.example.com"
+  data_path: "./data/vps-netwatch.db"
+
+auth:
+  token: "change-me"
+
+collectors:
+  - id: "lan-proxy-vm"
+    dashboard_url: "https://watch.example.com"
+    interval: "10s"
+
+agents:
+  - id: "main-vps"
+    name: "Main VPS"
+    public_ip: "203.0.113.10"
+    dashboard_url: "https://watch.example.com"
+    interval: "10s"
+    labels:
+      role: "dashboard"
+  - id: "hk-vps-01"
+    name: "HK VPS 01"
+    dashboard_url: "https://watch.example.com"
+    interval: "10s"
+    labels:
+      role: "proxy"
+
+mihomo:
+  controllers:
+    - name: "proxy-vm"
+      base_url: "http://127.0.0.1:9090"
+      secret: ""
+      role: "windows-proxy-vm"
+
+vps_nodes:
+  - id: "main-vps"
+    name: "Main VPS"
+    public_ip: "203.0.113.10"
+    labels:
+      role: "dashboard"
+
+probes:
+  - name: "google_443"
+    host: "www.google.com"
+    port: 443
+    protocol: "tcp"
+  - name: "game_server_sample"
+    host: "198.51.100.50"
+    port: 443
+    protocol: "tcp"

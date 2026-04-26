@@ -1,0 +1,16 @@
+[Unit]
+Description=vps-netwatch VPS agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/vps-netwatch
+ExecStart=/opt/vps-netwatch/bin/agent -config /opt/vps-netwatch/config.yaml -id main-vps
+Restart=on-failure
+RestartSec=5s
+User=root
+
+[Install]
+WantedBy=multi-user.target
+
