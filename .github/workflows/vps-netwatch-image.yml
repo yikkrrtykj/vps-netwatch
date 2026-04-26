@@ -12,6 +12,10 @@ permissions:
   contents: read
   packages: write
 
+concurrency:
+  group: vps-netwatch-image-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     name: Build dashboard binary
