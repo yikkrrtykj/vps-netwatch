@@ -77,6 +77,7 @@ func routers(r *gin.Engine, frontendDist fs.FS) {
 	optionalAuth.GET("/service/:id/history", commonHandler(getServiceHistory))
 	optionalAuth.GET("/server/:id/service", commonHandler(listServerServices))
 	optionalAuth.GET("/server/:id/metrics", commonHandler(getServerMetrics))
+	optionalAuth.GET("/netwatch/latency", commonHandler(getNetwatchLatency))
 
 	auth := api.Group("", authMw)
 
@@ -153,6 +154,8 @@ func routers(r *gin.Engine, frontendDist fs.FS) {
 
 	auth.PATCH("/setting", adminHandler(updateConfig))
 	auth.POST("/maintenance", adminHandler(runMaintenance))
+
+	r.GET("/netwatch/latency", netwatchLatencyPage)
 
 	r.NoRoute(fallbackToFrontend(frontendDist))
 }

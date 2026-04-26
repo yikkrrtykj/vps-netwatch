@@ -13,6 +13,7 @@
 - 默认分支：`main`
 - 镜像仓库：`ghcr.io/yikkrrtykj/vps-netwatch`
 - 构建架构：`linux/amd64`、`linux/arm64`
+- 自定义页面：`/netwatch/latency`，用于一页查看所有 ICMP/TCP 服务监控延迟曲线
 
 推送到 `main` 后，GitHub Actions 会构建并推送：
 
@@ -34,6 +35,18 @@ ghcr.io/yikkrrtykj/vps-netwatch:v1.0.0
 这样做的好处是：VPS 接入、Agent 通信、延迟图、服务监控、Web 终端这些基础能力先用上游稳定实现兜住；后续改造只通过源码提交和镜像发布，不直接修改服务器上已经安装的运行文件。
 
 详细步骤见 [VPS-NETWATCH.md](VPS-NETWATCH.md)。
+
+## 延迟总览
+
+部署本仓库镜像后，可以直接访问：
+
+```text
+http://你的主控地址:8008/netwatch/latency
+```
+
+这个页面会聚合哪吒后台“服务”页里配置的 `ICMP-Ping` 和 `TCP-Ping` 任务，把不同 VPS 节点到不同目标的延迟曲线放到同一张图里。适合快速查看游戏服、运营商线路、区域节点之间的延迟变化。
+
+如果页面没有数据，先在后台 `服务` 页添加至少一个 Ping/TCP 监控任务，并等待一次采集周期。
 
 ## 快速切换到自定义镜像
 
