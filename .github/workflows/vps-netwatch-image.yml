@@ -30,7 +30,7 @@ jobs:
       - name: Install helper tools
         run: |
           apt update
-          apt install unzip curl wget -y
+          apt install unzip curl wget gzip -y
           wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq
           chmod +x /usr/bin/yq
 
@@ -43,6 +43,12 @@ jobs:
         run: |
           chmod +x ./script/fetch-frontends.sh
           ./script/fetch-frontends.sh
+
+      - name: Fetch GeoIP database
+        run: |
+          month="$(date +%Y-%m)"
+          curl -fL "https://download.db-ip.com/free/dbip-country-lite-${month}.mmdb.gz" -o /tmp/geoip.mmdb.gz
+          gunzip -c /tmp/geoip.mmdb.gz > pkg/geoip/geoip.db
 
       - name: Set up Go
         uses: actions/setup-go@v5
