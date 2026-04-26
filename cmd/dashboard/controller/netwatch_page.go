@@ -201,9 +201,10 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     function x(ts) { return plot.left + (ts - state.view.start) / (state.view.end - state.view.start) * plot.width; }
     function y(v) { return plot.top + plot.height - v / maxY * plot.height; }
 
-    ctx.strokeStyle = getComputedStyle(document.documentElement).className.indexOf("dark") >= 0 ? "rgba(255,255,255,.12)" : "#dbe2ee";
+    var isDark = document.documentElement.classList.contains("dark") || document.body.classList.contains("dark");
+    ctx.strokeStyle = isDark ? "rgba(255,255,255,.12)" : "#dbe2ee";
     ctx.lineWidth = 1;
-    ctx.fillStyle = getComputedStyle(document.documentElement).className.indexOf("dark") >= 0 ? "#cbd5e1" : "#334155";
+    ctx.fillStyle = isDark ? "#cbd5e1" : "#334155";
     ctx.font = "12px -apple-system,BlinkMacSystemFont,Segoe UI,Arial";
     for (var gy = 0; gy <= 4; gy++) {
       var value = maxY * gy / 4;
