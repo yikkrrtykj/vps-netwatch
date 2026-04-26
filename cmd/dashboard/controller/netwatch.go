@@ -109,7 +109,7 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 			continue
 		}
 		visibleServers[id] = server
-		resp.Servers = append(resp.Servers, netwatchLatencyServer{ID: id, Name: server.Name, IP: netwatchServerIP(server)})
+		resp.Servers = append(resp.Servers, netwatchLatencyServer{ID: id, Name: server.Name, IP: netwatchPeerTargetIP(server, serverMap)})
 	}
 	sort.Slice(resp.Servers, func(i, j int) bool { return resp.Servers[i].Name < resp.Servers[j].Name })
 
@@ -193,7 +193,7 @@ func updateNetwatchPeerTarget(c *gin.Context) (*netwatchPeerState, error) {
 		return nil, singleton.Localizer.ErrorT("permission denied")
 	}
 
-	targetIP := netwatchServerIP(targetServer)
+	targetIP := netwatchPeerTargetIP(targetServer, serverMap)
 	if targetIP == "" {
 		return nil, singleton.Localizer.ErrorT("server %s has no public IP yet", targetServer.Name)
 	}
@@ -347,6 +347,30 @@ func netwatchServerIP(server *model.Server) string {
 		return server.GeoIP.IP.IPv4Addr
 	}
 	return server.GeoIP.IP.IPv6Addr
+}
+
+func netwatchPeerTargetIP(server *model.Server, serverMap map[uint64]*model.Server) string {
+	if ip := netwatchServerIP(server); ip != "" {
+		return ip
+	}
+	if server == nil {
+		return ""
+	}
+	for _, service := range singleton.ServiceSentinelShared.GetSortedList() {
+		if service == nil || service.Target == "" {
+			continue
+		}
+		if netwatchAutoPeerServerID(service) == server.ID {
+			return service.Target
+		}
+		if strings.HasPrefix(service.Name, "VPS ") && strings.TrimSpace(strings.TrimPrefix(service.Name, "VPS ")) == server.Name {
+			return service.Target
+		}
+		if netwatchPeerServerID(service, serverMap) == server.ID {
+			return service.Target
+		}
+	}
+	return ""
 }
 
 func netwatchDisplayServiceName(service *model.Service, serverMap map[uint64]*model.Server) string {
