@@ -23,30 +23,57 @@ var (
 	})
 )
 
-type IPInfo struct {
-	Country       string `maxminddb:"country"`
-	CountryName   string `maxminddb:"country_name"`
-	Continent     string `maxminddb:"continent"`
-	ContinentName string `maxminddb:"continent_name"`
-}
-
 func Lookup(ip net.IP) (string, error) {
 	db, err := dbOnce()
 	if err != nil {
 		return "", err
 	}
 
-	var record IPInfo
+	var record map[string]any
 	err = db.Lookup(ip, &record)
 	if err != nil {
 		return "", err
 	}
 
-	if record.Country != "" {
-		return strings.ToLower(record.Country), nil
-	} else if record.Continent != "" {
-		return strings.ToLower(record.Continent), nil
+	if code := countryCode(record); code != "" {
+		return strings.ToLower(code), nil
 	}
 
 	return "", errors.New("IP not found")
+}
+
+func countryCode(record map[string]any) string {
+	paths := [][]string{
+		{"country"},
+		{"country_code"},
+		{"country", "iso_code"},
+		{"registered_country", "iso_code"},
+		{"continent"},
+		{"continent_code"},
+		{"continent", "code"},
+	}
+
+	for _, path := range paths {
+		if code := strings.TrimSpace(stringAt(record, path...)); code != "" {
+			return code
+		}
+	}
+	return ""
+}
+
+func stringAt(record map[string]any, path ...string) string {
+	var current any = record
+	for _, key := range path {
+		m, ok := current.(map[string]any)
+		if !ok {
+			return ""
+		}
+		current = m[key]
+	}
+
+	value, ok := current.(string)
+	if !ok {
+		return ""
+	}
+	return value
 }
