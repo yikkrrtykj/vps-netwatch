@@ -29,8 +29,8 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
   var marker = "data-vps-netwatch-latency";
   var buttonClass = "inset-shadow-2xs inset-shadow-white/20 flex cursor-pointer flex-col items-center gap-0 rounded-[50px] bg-blue-100 p-2.5 text-blue-600 transition-all dark:bg-blue-900 dark:text-blue-100";
   var activeClass = "inset-shadow-black/20 bg-blue-600 text-white dark:bg-blue-100 dark:text-blue-600";
-  var colors = ["#5276d8", "#f2c14e", "#73bf69", "#e4576b"];
-  var state = { visible: false, loaded: false, data: null, domain: null, view: null, hover: null };
+  var colors = ["#5276d8", "#f2c14e", "#73bf69", "#e4576b", "#69bde7", "#8b5cf6", "#14b8a6", "#f97316", "#ec4899", "#64748b"];
+  var state = { visible: false, loaded: false, data: null, domain: null, view: null, hover: null, selectedServerId: "" };
   var panel;
   var canvas;
   var ctx;
@@ -47,12 +47,13 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       "#vps-netwatch-latency-panel[hidden]{display:none!important}" +
       ".vpsnw-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.22)}" +
       ".vpsnw-title{font-weight:800;font-size:14px}.vpsnw-sub{color:#64748b;font-size:12px}.dark .vpsnw-sub{color:#94a3b8}" +
+      ".vpsnw-head-side{display:flex;flex-direction:column;align-items:flex-end;gap:7px}.vpsnw-server-tabs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.vpsnw-server-btn{border:1px solid rgba(148,163,184,.35);border-radius:999px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 10px;white-space:nowrap}.vpsnw-server-btn.active{border-color:#2563eb;background:#2563eb;color:#fff}.dark .vpsnw-server-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-server-btn.active{background:#dbeafe;border-color:#dbeafe;color:#1d4ed8}" +
       ".vpsnw-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 18px;padding:10px 14px 2px;font-size:13px}.vpsnw-legend span{display:inline-flex;align-items:center;gap:6px}.vpsnw-dot{width:10px;height:10px;border-radius:50%;display:inline-block}" +
       ".vpsnw-chart{position:relative;height:360px;padding:6px 14px 14px}.vpsnw-chart canvas{width:100%;height:100%;display:block}" +
       ".vpsnw-tip{display:none;position:absolute;z-index:20;min-width:160px;max-width:260px;padding:10px 12px;border:1px solid rgba(148,163,184,.35);border-radius:8px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.2);font-size:13px;color:#111827;pointer-events:none}.dark .vpsnw-tip{background:rgba(15,15,15,.96);color:#f8fafc}" +
       ".vpsnw-tip-time{color:#475569;margin-bottom:6px}.dark .vpsnw-tip-time{color:#cbd5e1}.vpsnw-tip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;line-height:1.7}.vpsnw-tip-name{display:flex;align-items:center;gap:6px}" +
       ".vpsnw-empty{display:none;padding:22px 16px;color:#94a3b8;text-align:center;font-size:13px}" +
-      "@media(max-width:760px){.vpsnw-chart{height:300px;padding-left:8px;padding-right:8px}.vpsnw-head{align-items:flex-start;flex-direction:column}}";
+      "@media(max-width:760px){.vpsnw-chart{height:300px;padding-left:8px;padding-right:8px}.vpsnw-head{align-items:flex-start;flex-direction:column}.vpsnw-head-side{align-items:flex-start}.vpsnw-server-tabs{justify-content:flex-start}}";
     document.head.appendChild(style);
   }
 
@@ -93,8 +94,8 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     panel.id = "vps-netwatch-latency-panel";
     panel.hidden = true;
     panel.innerHTML =
-      '<div class="vpsnw-head"><div><div class="vpsnw-title">延迟</div><div class="vpsnw-sub">鼠标悬停看数值，滚轮缩放时间，双击恢复完整范围</div></div><div class="vpsnw-sub" id="vpsnw-range">加载中</div></div>' +
-      '<div class="vpsnw-empty" id="vpsnw-empty">暂无延迟数据。请在后台服务页添加上海电信、上海联通监控任务，并等待一次采集。</div>' +
+      '<div class="vpsnw-head"><div><div class="vpsnw-title">延迟</div><div class="vpsnw-sub">先选 VPS，再看这台 VPS 到各目标的 ping；滚轮缩放时间，双击恢复</div></div><div class="vpsnw-head-side"><div class="vpsnw-server-tabs" id="vpsnw-server-tabs"></div><div class="vpsnw-sub" id="vpsnw-range">加载中</div></div></div>' +
+      '<div class="vpsnw-empty" id="vpsnw-empty">暂无延迟数据。请在后台服务页添加上海电信、上海联通或 VPS 互 ping 监控任务，并等待一次采集。</div>' +
       '<div class="vpsnw-legend" id="vpsnw-legend"></div>' +
       '<div class="vpsnw-chart"><canvas id="vpsnw-canvas"></canvas><div class="vpsnw-tip" id="vpsnw-tip"></div></div>';
     host.insertAdjacentElement("afterend", panel);
@@ -113,13 +114,64 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
   function fmtTime(ts) { var d = new Date(ts); return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()); }
   function fmtAxis(ts) { var d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
   function fmtMs(v) { return !isFinite(v) ? "-" : (v < 100 ? v.toFixed(2) : Math.round(v)) + "ms"; }
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];
+    });
+  }
+
+  function ensureSelectedServer() {
+    var servers = (state.data && state.data.servers) || [];
+    var saved = "";
+    try { saved = window.localStorage.getItem("vpsnw-selected-server") || ""; } catch (_) {}
+    function exists(id) {
+      return servers.some(function (server) { return String(server.id) === String(id); });
+    }
+    if (state.selectedServerId && exists(state.selectedServerId)) return;
+    if (saved && exists(saved)) {
+      state.selectedServerId = saved;
+      return;
+    }
+    state.selectedServerId = servers.length ? String(servers[0].id) : "";
+  }
+
+  function selectedServerName() {
+    var servers = (state.data && state.data.servers) || [];
+    for (var i = 0; i < servers.length; i++) {
+      if (String(servers[i].id) === String(state.selectedServerId)) return servers[i].name || ("VPS " + servers[i].id);
+    }
+    return "未选择 VPS";
+  }
+
+  function renderServerTabs() {
+    var box = panel && panel.querySelector("#vpsnw-server-tabs");
+    if (!box || !state.data) return;
+    ensureSelectedServer();
+    box.innerHTML = "";
+    (state.data.servers || []).forEach(function (server) {
+      var id = String(server.id);
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "vpsnw-server-btn" + (id === String(state.selectedServerId) ? " active" : "");
+      btn.textContent = server.name || ("VPS " + id);
+      btn.onclick = function () {
+        state.selectedServerId = id;
+        state.hover = null;
+        try { window.localStorage.setItem("vpsnw-selected-server", id); } catch (_) {}
+        draw();
+      };
+      box.appendChild(btn);
+    });
+  }
 
   function aggregate() {
     if (!state.data) return [];
+    ensureSelectedServer();
     var grouped = {};
     (state.data.series || []).forEach(function (raw) {
+      if (state.selectedServerId && String(raw.server_id) !== String(state.selectedServerId)) return;
       var key = String(raw.service_id);
-      if (!grouped[key]) grouped[key] = { name: raw.service_name, display_index: raw.display_index || 0, points: {}, total: 0, count: 0 };
+      if (!grouped[key]) grouped[key] = { name: raw.service_name, target: raw.target || "", type_name: raw.type_name || "", display_index: raw.display_index || 0, points: {}, total: 0, count: 0 };
       (raw.data_points || []).forEach(function (p) {
         if (!p || p.status === 0 || !(p.delay > 0)) return;
         var minute = Math.floor(p.ts / 60000) * 60000;
@@ -136,7 +188,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
         var sum = values.reduce(function (a, b) { return a + b; }, 0);
         return { ts: Number(ts), delay: sum / values.length };
       }).sort(function (a, b) { return a.ts - b.ts; });
-      return { name: g.name, display_index: g.display_index, avg: g.count ? g.total / g.count : 0, points: points };
+      return { name: g.name, target: g.target, type_name: g.type_name, display_index: g.display_index, avg: g.count ? g.total / g.count : 0, points: points };
     }).filter(function (s) { return s.points.length; }).sort(function (a, b) {
       if (a.display_index !== b.display_index) return b.display_index - a.display_index;
       return a.name.localeCompare(b.name);
@@ -171,19 +223,21 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     if (!body.success) throw new Error(body.error || "请求失败");
     state.data = body.data;
     state.loaded = true;
+    ensureSelectedServer();
     updateDomain();
     draw();
   }
 
   function draw() {
     if (!panel || panel.hidden || !canvas || !ctx || !state.data) return;
+    renderServerTabs();
     var series = aggregate();
     panel.querySelector("#vpsnw-empty").style.display = series.length ? "none" : "block";
     panel.querySelector(".vpsnw-chart").style.display = series.length ? "block" : "none";
     renderLegend(series);
+    panel.querySelector("#vpsnw-range").textContent = selectedServerName() + " | " + fmtTime(state.view.start) + " - " + fmtTime(state.view.end);
     if (!series.length) return;
 
-    panel.querySelector("#vpsnw-range").textContent = fmtTime(state.view.start) + " - " + fmtTime(state.view.end);
     var rect = canvas.getBoundingClientRect();
     var dpr = window.devicePixelRatio || 1;
     canvas.width = Math.max(1, Math.floor(rect.width * dpr));
@@ -237,7 +291,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       var pts = s.points.filter(function (p) { return p.ts >= state.view.start && p.ts <= state.view.end; });
       var avg = pts.length ? pts.reduce(function (sum, p) { return sum + p.delay; }, 0) / pts.length : s.avg;
       var item = document.createElement("span");
-      item.innerHTML = '<i class="vpsnw-dot" style="background:' + colors[index % colors.length] + '"></i>' + s.name + " " + fmtMs(avg);
+      item.innerHTML = '<i class="vpsnw-dot" style="background:' + colors[index % colors.length] + '"></i>' + escapeHtml(s.name) + " " + fmtMs(avg);
       legend.appendChild(item);
     });
   }
@@ -268,7 +322,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.4; ctx.stroke();
     });
     tooltip.innerHTML = '<div class="vpsnw-tip-time">' + fmtTime(items[0].p.ts) + '</div>' + items.map(function (item) {
-      return '<div class="vpsnw-tip-row"><span class="vpsnw-tip-name"><i class="vpsnw-dot" style="background:' + item.color + '"></i>' + item.s.name + '</span><strong>' + fmtMs(item.p.delay) + '</strong></div>';
+      return '<div class="vpsnw-tip-row"><span class="vpsnw-tip-name"><i class="vpsnw-dot" style="background:' + item.color + '"></i>' + escapeHtml(item.s.name) + '</span><strong>' + fmtMs(item.p.delay) + '</strong></div>';
     }).join("");
     tooltip.style.display = "block";
     tooltip.style.left = Math.min(panel.clientWidth - tooltip.offsetWidth - 20, Math.max(10, state.hover.x + 18)) + "px";
