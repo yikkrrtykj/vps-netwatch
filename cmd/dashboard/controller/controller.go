@@ -155,7 +155,10 @@ func routers(r *gin.Engine, frontendDist fs.FS) {
 	auth.PATCH("/setting", adminHandler(updateConfig))
 	auth.POST("/maintenance", adminHandler(runMaintenance))
 
-	r.GET("/netwatch/latency", netwatchLatencyPage)
+	r.GET("/dashboard/netwatch/latency", netwatchLatencyPage)
+	r.GET("/netwatch/latency", func(c *gin.Context) {
+		c.Redirect(http.StatusMovedPermanently, "/dashboard/netwatch/latency")
+	})
 
 	r.NoRoute(fallbackToFrontend(frontendDist))
 }
@@ -302,6 +305,13 @@ func getUid(c *gin.Context) uint64 {
 func fallbackToFrontend(frontendDist fs.FS) func(*gin.Context) {
 	checkLocalFileOrFs := func(c *gin.Context, fs fs.FS, path string, customStatusCode int) bool {
 		if _, err := os.Stat(path); err == nil {
+			if netwatchShouldInjectUserIndex(path) {
+				content, err := os.ReadFile(path)
+				if err == nil {
+					netwatchServeInjectedUserIndex(c, customStatusCode, content)
+					return true
+				}
+			}
 			http.ServeFile(utils.NewGinCustomWriter(c, customStatusCode), c.Request, path)
 			return true
 		}
@@ -316,6 +326,13 @@ func fallbackToFrontend(frontendDist fs.FS) func(*gin.Context) {
 		}
 		if fileStat.IsDir() {
 			return false
+		}
+		if netwatchShouldInjectUserIndex(path) {
+			content, err := io.ReadAll(f)
+			if err == nil {
+				netwatchServeInjectedUserIndex(c, customStatusCode, content)
+				return true
+			}
 		}
 		http.ServeContent(utils.NewGinCustomWriter(c, customStatusCode), c.Request, path, fileStat.ModTime(), f.(io.ReadSeeker))
 		return true

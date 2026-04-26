@@ -2,80 +2,190 @@
 
 [![Build vps-netwatch image](https://github.com/yikkrrtykj/vps-netwatch/actions/workflows/vps-netwatch-image.yml/badge.svg)](https://github.com/yikkrrtykj/vps-netwatch/actions/workflows/vps-netwatch-image.yml)
 
-`vps-netwatch` 是基于 [Nezha Monitoring](https://github.com/nezhahq/nezha) 的自定义 Dashboard 仓库。
+`vps-netwatch` 是我的 VPS 网络监控面板，基于 Nezha Dashboard 二次开发。
 
-当前策略不是重写一套 VPS 监控系统，而是复用哪吒成熟的 Dashboard、Agent、服务监控、延迟图和 Web 终端能力，在这个 fork 上逐步增加代理链路、mihomo/Clash、出口 IP、ASN、地区和游戏网络诊断相关功能。
+当前重点不是重写服务器监控，而是在哪吒已有的 Dashboard、Agent、Web 终端、服务监控能力上，增加更适合 VPS 线路观察的延迟视图。
 
-## 当前状态
+## 功能
 
-- 代码基线：Nezha Dashboard fork
-- Go module：保持上游 `github.com/nezhahq/nezha`
-- 默认分支：`main`
-- 镜像仓库：`ghcr.io/yikkrrtykj/vps-netwatch`
-- 构建架构：`linux/amd64`、`linux/arm64`
-- 自定义页面：`/netwatch/latency`，用于一页查看所有 ICMP/TCP 服务监控延迟曲线
+- 使用哪吒 Agent 接入多台 VPS。
+- 保留哪吒原有服务器状态、流量、CPU、内存、磁盘和 Web 终端。
+- 默认启用 TSDB，用于保存历史监控数据。
+- 首页视图按钮旁增加“延迟”入口。
+- `/dashboard/netwatch/latency` 延迟面板按目标聚合曲线，例如只显示 `上海电信`、`上海联通` 两条线。
+- 延迟图支持鼠标悬停查看具体数值，鼠标滚轮缩放时间范围，双击恢复完整时间范围。
 
-推送到 `main` 后，GitHub Actions 会构建并推送：
+## 镜像
 
 ```text
-ghcr.io/yikkrrtykj/vps-netwatch:main
 ghcr.io/yikkrrtykj/vps-netwatch:latest
+ghcr.io/yikkrrtykj/vps-netwatch:main
 ```
 
-推送 tag，例如 `v1.0.0`，会额外生成：
+每次推送到 `main` 后，GitHub Actions 会自动构建并推送 `linux/amd64` 和 `linux/arm64` 镜像。
 
-```text
-ghcr.io/yikkrrtykj/vps-netwatch:v1.0.0
+## 安装 Dashboard
+
+以下以 Ubuntu 22.04、root 用户为例。
+
+### 1. 安装 Docker
+
+```bash
+apt update
+apt install -y ca-certificates curl
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+apt update
+apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-## 推荐使用方式
+检查：
 
-先安装原版哪吒，确认基础监控功能稳定，再切换到本仓库镜像。
-
-这样做的好处是：VPS 接入、Agent 通信、延迟图、服务监控、Web 终端这些基础能力先用上游稳定实现兜住；后续改造只通过源码提交和镜像发布，不直接修改服务器上已经安装的运行文件。
-
-详细步骤见 [VPS-NETWATCH.md](VPS-NETWATCH.md)。
-
-## 延迟总览
-
-部署本仓库镜像后，可以直接访问：
-
-```text
-http://你的主控地址:8008/netwatch/latency
+```bash
+docker version
+docker compose version
 ```
 
-这个页面会聚合哪吒后台“服务”页里配置的 `ICMP-Ping` 和 `TCP-Ping` 任务，把不同 VPS 节点到不同目标的延迟曲线放到同一张图里。适合快速查看游戏服、运营商线路、区域节点之间的延迟变化。
+注意：不要使用旧的 `docker-compose` v1 搭配较新的 Docker，可能会遇到 `ContainerConfig` 错误。优先使用 `docker compose`。
 
-如果页面没有数据，先在后台 `服务` 页添加至少一个 Ping/TCP 监控任务，并等待一次采集周期。
+### 2. 创建目录
 
-## 快速切换到自定义镜像
-
-原版哪吒 Docker 安装后，主控配置通常在：
-
-```text
-/opt/nezha/dashboard/docker-compose.yaml
-/opt/nezha/dashboard/data/config.yaml
+```bash
+mkdir -p /opt/nezha/dashboard/data
+cd /opt/nezha/dashboard
 ```
 
-把 `/opt/nezha/dashboard/docker-compose.yaml` 里的 Dashboard 镜像改成：
+### 3. 写入配置
+
+创建 `/opt/nezha/dashboard/data/config.yaml`：
 
 ```yaml
-image: ghcr.io/yikkrrtykj/vps-netwatch:latest
+listen_port: 8008
+language: zh_CN
+site_name: vps-netwatch
+install_host: 你的主控IP:8008
+tls: false
+
+tsdb:
+  data_path: data/tsdb
+  retention_days: 30
+  min_free_disk_space_gb: 1
+  max_memory_mb: 256
 ```
 
-然后重启 Dashboard：
+把 `你的主控IP` 改成 Dashboard 所在 VPS 的公网 IP 或域名。
+
+### 4. 写入 Docker Compose
+
+创建 `/opt/nezha/dashboard/docker-compose.yaml`：
+
+```yaml
+services:
+  dashboard:
+    image: ghcr.io/yikkrrtykj/vps-netwatch:latest
+    container_name: nezha-dashboard
+    restart: always
+    volumes:
+      - ./data:/dashboard/data
+    ports:
+      - "8008:8008"
+```
+
+启动：
+
+```bash
+docker compose pull
+docker compose up -d
+docker logs --tail 80 nezha-dashboard
+```
+
+日志里看到下面内容说明启动成功：
+
+```text
+TSDB initialized successfully
+Dashboard::START ON :8008
+```
+
+### 5. 登录后台
+
+浏览器打开：
+
+```text
+http://你的主控IP:8008/dashboard/
+```
+
+默认账号：
+
+```text
+用户名：admin
+密码：admin
+```
+
+第一次登录后请立刻修改密码。
+
+## 接入 VPS Agent
+
+在 Dashboard 后台进入 `服务器` 页面，添加或复制 Agent 安装命令。
+
+如果某台 VPS 缺依赖，先安装：
+
+```bash
+apt update
+apt install -y curl unzip
+```
+
+然后在每台被监控 VPS 上执行后台生成的 Agent 安装命令。
+
+安装完成后，回到 Dashboard 首页确认服务器在线。
+
+## 添加延迟监控
+
+后台进入 `服务` 页面，新增两个服务监控。
+
+上海电信：
+
+```text
+名称：上海电信
+类型：ICMP-Ping
+目标：202.96.209.133
+间隔：30 秒
+覆盖范围：全部服务器
+显示在服务页：开启
+```
+
+上海联通：
+
+```text
+名称：上海联通
+类型：TCP-Ping
+目标：210.22.84.3:53
+间隔：30 秒
+覆盖范围：全部服务器
+显示在服务页：开启
+```
+
+等 1-2 分钟后，打开：
+
+```text
+http://你的主控IP:8008/dashboard/netwatch/latency
+```
+
+首页服务器列表上方的圆形按钮旁也会出现一个“延迟”入口，可以直接点进去。
+
+## 更新
 
 ```bash
 cd /opt/nezha/dashboard
-sudo docker compose pull
-sudo docker compose up -d
+docker compose pull
+docker compose up -d
+docker logs --tail 80 nezha-dashboard
 ```
 
-如果 GHCR 拉取失败，先检查仓库的 Packages 是否已经发布，并确认 package visibility 是 public。
+## 回滚到原版哪吒
 
-## 回滚
-
-把镜像改回原版哪吒：
+把 `/opt/nezha/dashboard/docker-compose.yaml` 里的镜像改回：
 
 ```yaml
 image: ghcr.io/nezhahq/nezha:latest
@@ -85,43 +195,12 @@ image: ghcr.io/nezhahq/nezha:latest
 
 ```bash
 cd /opt/nezha/dashboard
-sudo docker compose pull
-sudo docker compose up -d
+docker compose pull
+docker compose up -d
 ```
 
-## 部署参考
+## 开发说明
 
-本仓库提供了最小 Docker Compose 参考：
-
-- [deploy/vps-netwatch/docker-compose.yml](deploy/vps-netwatch/docker-compose.yml)
-- [deploy/vps-netwatch/config.example.yaml](deploy/vps-netwatch/config.example.yaml)
-
-如果你是从原版哪吒切换过来，优先沿用 `/opt/nezha/dashboard/data` 里的现有数据和配置，不要直接覆盖生产数据目录。
-
-## 后续改造方向
-
-第一阶段保持哪吒原功能稳定，只补充网络诊断能力：
-
-- 每台 VPS 出口 IP、ASN、地区检测
-- mihomo/Clash external-controller 只读数据源
-- 游戏服务器目标 IP 观察和延迟诊断
-- 代理链路、规则命中、连接目标排障视图
-
-## 上游同步
-
-本仓库仍按 Nezha 源码树维护。同步上游时建议先确认自己的改动已经提交，再合并上游：
-
-```bash
-git fetch upstream master
-git merge upstream/master
-```
-
-遇到冲突时，优先保留上游监控主逻辑，再重新套用本仓库的自定义功能。
-
-## 上游项目
-
-- Dashboard：[nezhahq/nezha](https://github.com/nezhahq/nezha)
-- Agent：[nezhahq/agent](https://github.com/nezhahq/agent)
-- 官方文档：[中文文档](https://nezhahq.github.io/index.html) / [English](https://nezhahq.github.io/en_US/index.html)
-
-本仓库遵循上游 Apache-2.0 license。
+- 本仓库保留上游模块名 `github.com/nezhahq/nezha`，避免大规模修改 import。
+- 运行文件不要直接在生产 VPS 上手改，应该改源码、推送仓库、等待镜像构建，再更新 Docker 镜像。
+- 上游项目使用 Apache-2.0 license。

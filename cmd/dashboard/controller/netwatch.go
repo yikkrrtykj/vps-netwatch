@@ -53,7 +53,7 @@ type netwatchLatencySeries struct {
 }
 
 func netwatchLatencyPage(c *gin.Context) {
-	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(netwatchLatencyHTML))
+	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(netwatchLatencyHTMLV2))
 }
 
 func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
