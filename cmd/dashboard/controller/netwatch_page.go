@@ -30,7 +30,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
   var buttonClass = "inset-shadow-2xs inset-shadow-white/20 flex cursor-pointer flex-col items-center gap-0 rounded-[50px] bg-blue-100 p-2.5 text-blue-600 transition-all dark:bg-blue-900 dark:text-blue-100";
   var activeClass = "inset-shadow-black/20 bg-blue-600 text-white dark:bg-blue-100 dark:text-blue-600";
   var colors = ["#5276d8", "#f2c14e", "#73bf69", "#e4576b", "#69bde7", "#8b5cf6", "#14b8a6", "#f97316", "#ec4899", "#64748b"];
-  var state = { visible: false, loaded: false, data: null, domain: null, view: null, hover: null, selectedServerId: "" };
+  var state = { visible: false, loaded: false, data: null, domain: null, view: null, hover: null, selectedServerId: "", peerTargetServerId: "", peerSaving: false };
   var panel;
   var canvas;
   var ctx;
@@ -48,12 +48,13 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       ".vpsnw-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.22)}" +
       ".vpsnw-title{font-weight:800;font-size:14px}.vpsnw-sub{color:#64748b;font-size:12px}.dark .vpsnw-sub{color:#94a3b8}" +
       ".vpsnw-head-side{display:flex;flex-direction:column;align-items:flex-end;gap:7px}.vpsnw-server-tabs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.vpsnw-server-btn{border:1px solid rgba(148,163,184,.35);border-radius:999px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 10px;white-space:nowrap}.vpsnw-server-btn.active{border-color:#2563eb;background:#2563eb;color:#fff}.dark .vpsnw-server-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-server-btn.active{background:#dbeafe;border-color:#dbeafe;color:#1d4ed8}" +
+      ".vpsnw-peer-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;padding:8px 14px 0;font-size:12px;color:#64748b}.dark .vpsnw-peer-row{color:#94a3b8}.vpsnw-peer-tabs{display:flex;flex-wrap:wrap;gap:6px}.vpsnw-peer-btn{border:1px solid rgba(148,163,184,.35);border-radius:7px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 9px;white-space:nowrap}.vpsnw-peer-btn.active{border-color:#0f172a;background:#0f172a;color:#fff}.vpsnw-peer-btn:disabled{cursor:not-allowed;opacity:.58}.dark .vpsnw-peer-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-peer-btn.active{background:#f8fafc;border-color:#f8fafc;color:#0f172a}" +
       ".vpsnw-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 18px;padding:10px 14px 2px;font-size:13px}.vpsnw-legend span{display:inline-flex;align-items:center;gap:6px}.vpsnw-dot{width:10px;height:10px;border-radius:50%;display:inline-block}" +
       ".vpsnw-chart{position:relative;height:360px;padding:6px 14px 14px}.vpsnw-chart canvas{width:100%;height:100%;display:block}" +
       ".vpsnw-tip{display:none;position:absolute;z-index:20;min-width:160px;max-width:260px;padding:10px 12px;border:1px solid rgba(148,163,184,.35);border-radius:8px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.2);font-size:13px;color:#111827;pointer-events:none}.dark .vpsnw-tip{background:rgba(15,15,15,.96);color:#f8fafc}" +
       ".vpsnw-tip-time{color:#475569;margin-bottom:6px}.dark .vpsnw-tip-time{color:#cbd5e1}.vpsnw-tip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;line-height:1.7}.vpsnw-tip-name{display:flex;align-items:center;gap:6px}" +
       ".vpsnw-empty{display:none;padding:22px 16px;color:#94a3b8;text-align:center;font-size:13px}" +
-      "@media(max-width:760px){.vpsnw-chart{height:300px;padding-left:8px;padding-right:8px}.vpsnw-head{align-items:flex-start;flex-direction:column}.vpsnw-head-side{align-items:flex-start}.vpsnw-server-tabs{justify-content:flex-start}}";
+      "@media(max-width:760px){.vpsnw-chart{height:300px;padding-left:8px;padding-right:8px}.vpsnw-head{align-items:flex-start;flex-direction:column}.vpsnw-head-side{align-items:flex-start}.vpsnw-server-tabs,.vpsnw-peer-row{justify-content:flex-start}}";
     document.head.appendChild(style);
   }
 
@@ -95,7 +96,8 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     panel.hidden = true;
     panel.innerHTML =
       '<div class="vpsnw-head"><div><div class="vpsnw-title">延迟</div><div class="vpsnw-sub">先选 VPS，再看这台 VPS 到各目标的 ping；滚轮缩放时间，双击恢复</div></div><div class="vpsnw-head-side"><div class="vpsnw-server-tabs" id="vpsnw-server-tabs"></div><div class="vpsnw-sub" id="vpsnw-range">加载中</div></div></div>' +
-      '<div class="vpsnw-empty" id="vpsnw-empty">暂无延迟数据。请在后台服务页添加上海电信、上海联通或 VPS 互 ping 监控任务，并等待一次采集。</div>' +
+      '<div class="vpsnw-peer-row"><span>互 ping 目标</span><div class="vpsnw-peer-tabs" id="vpsnw-peer-tabs"></div></div>' +
+      '<div class="vpsnw-empty" id="vpsnw-empty">暂无延迟数据。默认只显示上海电信、上海联通；需要互 ping 时在上面选择一台目标 VPS，并等待一次采集。</div>' +
       '<div class="vpsnw-legend" id="vpsnw-legend"></div>' +
       '<div class="vpsnw-chart"><canvas id="vpsnw-canvas"></canvas><div class="vpsnw-tip" id="vpsnw-tip"></div></div>';
     host.insertAdjacentElement("afterend", panel);
@@ -164,14 +166,78 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     });
   }
 
+  function syncPeerState() {
+    state.peerTargetServerId = state.data && state.data.peer && state.data.peer.enabled ? String(state.data.peer.target_server_id || "") : "";
+  }
+
+  function renderPeerTargets() {
+    var box = panel && panel.querySelector("#vpsnw-peer-tabs");
+    if (!box || !state.data) return;
+    var servers = state.data.servers || [];
+    box.innerHTML = "";
+
+    function addButton(label, id, active, disabled, title) {
+      var btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "vpsnw-peer-btn" + (active ? " active" : "");
+      btn.textContent = label;
+      btn.disabled = disabled || state.peerSaving;
+      if (title) btn.title = title;
+      btn.onclick = function () { setPeerTarget(id); };
+      box.appendChild(btn);
+    }
+
+    addButton("关闭", "0", !state.peerTargetServerId, false, "默认只看上海电信和上海联通");
+    servers.forEach(function (server) {
+      var id = String(server.id);
+      if (id === String(state.selectedServerId)) return;
+      var label = server.name || ("VPS " + id);
+      var disabled = !server.ip;
+      addButton(label, id, id === String(state.peerTargetServerId), disabled, disabled ? "这台 VPS 还没有上报公网 IP" : "让当前 VPS ping " + label);
+    });
+  }
+
+  async function setPeerTarget(id) {
+    if (state.peerSaving) return;
+    state.peerSaving = true;
+    renderPeerTargets();
+    try {
+      var headers = { "Content-Type": "application/json" };
+      var token = getToken();
+      if (token) headers.Authorization = "Bearer " + token;
+      var res = await fetch("/api/v1/netwatch/peer-target", {
+        method: "POST",
+        headers: headers,
+        credentials: "same-origin",
+        body: JSON.stringify({ target_server_id: id === "0" ? 0 : Number(id) })
+      });
+      var body = await res.json();
+      if (!body.success) throw new Error(body.error || "设置失败");
+      state.peerTargetServerId = body.data && body.data.enabled ? String(body.data.target_server_id || "") : "";
+      state.loaded = false;
+      await load();
+    } catch (err) {
+      panel.querySelector("#vpsnw-empty").style.display = "block";
+      panel.querySelector("#vpsnw-empty").textContent = err.message || String(err);
+    } finally {
+      state.peerSaving = false;
+      renderPeerTargets();
+    }
+  }
+
   function aggregate() {
     if (!state.data) return [];
     ensureSelectedServer();
     var grouped = {};
     (state.data.series || []).forEach(function (raw) {
       if (state.selectedServerId && String(raw.server_id) !== String(state.selectedServerId)) return;
-      var key = String(raw.service_id);
-      if (!grouped[key]) grouped[key] = { name: raw.service_name, target: raw.target || "", type_name: raw.type_name || "", display_index: raw.display_index || 0, points: {}, total: 0, count: 0 };
+      var isPeer = !!raw.is_peer;
+      if (isPeer) {
+        if (!state.peerTargetServerId || String(raw.peer_server_id) !== String(state.peerTargetServerId)) return;
+        if (String(raw.peer_server_id) === String(state.selectedServerId)) return;
+      }
+      var key = isPeer ? ("peer:" + String(raw.peer_server_id)) : String(raw.service_id);
+      if (!grouped[key]) grouped[key] = { name: raw.service_name, target: raw.target || "", type_name: raw.type_name || "", display_index: raw.display_index || 0, peer_server_id: raw.peer_server_id || 0, is_peer: isPeer, points: {}, total: 0, count: 0 };
       (raw.data_points || []).forEach(function (p) {
         if (!p || p.status === 0 || !(p.delay > 0)) return;
         var minute = Math.floor(p.ts / 60000) * 60000;
@@ -188,7 +254,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
         var sum = values.reduce(function (a, b) { return a + b; }, 0);
         return { ts: Number(ts), delay: sum / values.length };
       }).sort(function (a, b) { return a.ts - b.ts; });
-      return { name: g.name, target: g.target, type_name: g.type_name, display_index: g.display_index, avg: g.count ? g.total / g.count : 0, points: points };
+      return { name: g.name, target: g.target, type_name: g.type_name, display_index: g.display_index, is_peer: g.is_peer, peer_server_id: g.peer_server_id, avg: g.count ? g.total / g.count : 0, points: points };
     }).filter(function (s) { return s.points.length; }).sort(function (a, b) {
       if (a.display_index !== b.display_index) return b.display_index - a.display_index;
       return a.name.localeCompare(b.name);
@@ -223,6 +289,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     if (!body.success) throw new Error(body.error || "请求失败");
     state.data = body.data;
     state.loaded = true;
+    syncPeerState();
     ensureSelectedServer();
     updateDomain();
     draw();
@@ -231,6 +298,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
   function draw() {
     if (!panel || panel.hidden || !canvas || !ctx || !state.data) return;
     renderServerTabs();
+    renderPeerTargets();
     var series = aggregate();
     panel.querySelector("#vpsnw-empty").style.display = series.length ? "none" : "block";
     panel.querySelector(".vpsnw-chart").style.display = series.length ? "block" : "none";
