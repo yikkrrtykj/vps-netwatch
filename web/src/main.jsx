@@ -324,7 +324,7 @@ function subtitle(tab) {
     egress: "确认代理 VM、网关或 VPS 当前公网出口。",
     latency: "对游戏 IP、VPS 或关键服务做 TCP 延迟采样。",
     vps: "汇总多台 VPS agent 与代理节点状态。",
-    topology: "把当前和未来网络路径放在一张可读拓扑里。",
+    topology: "展示通用部署接入关系，不包含私有内网设备型号。",
     settings: "配置浏览器访问 dashboard API 的 token。",
   };
   return map[tab] || "";

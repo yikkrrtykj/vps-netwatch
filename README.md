@@ -15,7 +15,7 @@
 - 出口检测：collector 检测当前公网出口 IP，dashboard 显示最近上报结果。
 - 延迟诊断：对配置里的目标做 TCP connect RTT；ICMP/UDP 后续按权限和设备能力扩展。
 - VPS 监控：接收多台 VPS agent 上报的 CPU、内存、磁盘、流量、uptime、sing-box 状态。
-- 网络拓扑：默认展示终端、本地 mihomo、代理 VM、Cisco C3850、WatchGuard M670、MikroTik、ISP、VPS、游戏服务器。
+- 接入拓扑：默认展示 dashboard、VPS agent、可选 collector、mihomo API 和探测目标之间的关系；不写入任何私有内网设备型号。
 
 ## 快速开始
 
