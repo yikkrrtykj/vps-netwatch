@@ -1,0 +1,9 @@
+services:
+  dashboard:
+    image: ghcr.io/yikkrrtykj/vps-netwatch:latest
+    container_name: nezha-dashboard
+    restart: always
+    volumes:
+      - ./data:/dashboard/data
+    ports:
+      - "8008:8008"

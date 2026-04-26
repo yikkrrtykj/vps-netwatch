@@ -1,26 +1,21 @@
-FROM node:22-alpine AS web
-WORKDIR /src/web
-COPY web/package.json ./
-RUN npm install
-COPY web/ ./
-RUN npm run build
+FROM alpine AS depend
+RUN apk add --update --no-cache ca-certificates tzdata
 
-FROM golang:1.22-alpine AS build
-WORKDIR /src
-RUN apk add --no-cache ca-certificates
-COPY go.mod ./
-RUN go mod download
-COPY . .
-COPY --from=web /src/web/dist ./web/dist
-RUN go build -o /out/dashboard ./cmd/dashboard
-RUN go build -o /out/agent ./cmd/agent
-RUN go build -o /out/collector ./cmd/collector
+FROM busybox:stable-musl
 
-FROM alpine:3.20
-WORKDIR /opt/vps-netwatch
-RUN apk add --no-cache ca-certificates
-COPY --from=build /out/dashboard /usr/local/bin/vps-netwatch-dashboard
-COPY --from=build /src/web/dist ./web/dist
-COPY config.example.yaml ./config.example.yaml
-EXPOSE 8787
-CMD ["vps-netwatch-dashboard", "-config", "/opt/vps-netwatch/config.yaml"]
+ARG TARGETOS
+ARG TARGETARCH
+
+COPY --from=depend /etc/ssl/certs /etc/ssl/certs
+COPY --from=depend /usr/share/zoneinfo /usr/share/zoneinfo
+COPY ./script/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+WORKDIR /dashboard
+COPY dist/dashboard-${TARGETOS}-${TARGETARCH} ./app
+
+VOLUME ["/dashboard/data"]
+EXPOSE 8008
+ARG TZ=Asia/Shanghai
+ENV TZ=$TZ
+ENTRYPOINT ["/entrypoint.sh"]

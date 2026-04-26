@@ -1,177 +1,120 @@
-# vps-netwatch
+> `vps-netwatch` 现在改为基于 [Nezha Monitoring](https://github.com/nezhahq/nezha) 的自定义源码仓库。
+>
+> 先用官方哪吒跑稳定的多 VPS 监控，再在这个仓库里改源码、构建自己的 Dashboard 镜像。具体使用步骤见 [VPS-NETWATCH.md](VPS-NETWATCH.md)。
 
-`vps-netwatch` 是一个独立的 VPS/代理/游戏网络观测项目。默认形态类似哪吒监控：一台 VPS 跑 `dashboard` 做总面板，其他 VPS 跑轻量 `agent` 接入；内网代理 VM 可选跑 `collector`，用来读取 mihomo/Clash 连接。
+<div align="center">
+  <br>
+  <img width="360" style="max-width:80%" src=".github/brand.svg" title="哪吒监控 Nezha Monitoring">
+  <br>
+  <small><i>LOGO designed by <a href="https://xio.ng" target="_blank">熊大</a> .</i></small>
+  <br><br>
+<img alt="GitHub release (with filter)" src="https://img.shields.io/github/v/release/nezhahq/nezha?color=brightgreen&style=for-the-badge&logo=github&label=Dashboard">&nbsp;<img src="https://img.shields.io/github/v/release/nezhahq/agent?color=brightgreen&label=Agent&style=for-the-badge&logo=github">&nbsp;<img src="https://img.shields.io/github/actions/workflow/status/nezhahq/agent/agent.yml?label=Agent%20CI&logo=github&style=for-the-badge">&nbsp;<a href="https://hosted.weblate.org/engage/nezha/"><img src="https://img.shields.io/weblate/progress/nezha?color=brightgreen&label=Translated&style=for-the-badge&logo=weblate" alt="Translation status" /></a>
+  <br>
+  <br>
+  <p>:trollface: <b>Nezha Monitoring: Self-hostable, lightweight, servers and websites monitoring and O&M tool.</b></p>
+  <p>Supports <b>monitoring</b> system status, HTTP (SSL certificate change, upcoming expiration, expired), TCP, Ping and supports <b>push alerts</b>, run scheduled tasks and <b>web terminal</b>.</p>
+</div>
 
-## 架构
+\>> Telegram Channel: [哪吒监控（中文通知频道）](https://t.me/nezhanews)<br>
+\>> Telegram Group: [Nezha Monitoring Global (English Only)](https://t.me/nezhamonitoring_global), [哪吒监控（中文群组）](https://t.me/nezhamonitoring)
 
-- `dashboard`：主控面板，运行在一台主 VPS 上，负责 Web UI、API、SQLite 数据库和所有 VPS 总览。
-- `agent`：探针，运行在每台被监控 VPS 上，主动上报 CPU、内存、磁盘、网卡流量、uptime、sing-box 状态和出口 IP。
-- `collector`：可选组件，运行在内网代理 VM 上，只读读取 mihomo API，用来分析连接目标 IP、端口、规则和代理链路。
-- `终端/游戏电脑`：默认不安装任何东西，不抓包，不装驱动。
+\>> [Use Cases | 我们的用户](https://www.google.com/search?q=%22%E5%93%AA%E5%90%92%E7%9B%91%E6%8E%A7+Nezha+Monitoring%22) (Google) <br>
 
-## 第一版能力
 
-- VPS 监控：多台 VPS agent 自动接入总面板。
-- 出口检测：按 agent/collector 分别显示当前公网出口 IP。
-- 延迟诊断：按 agent/collector 分别显示配置目标的 TCP connect RTT。
-- mihomo 连接：可选读取 `/connections` 和 `/traffic`，显示目标 IP/端口、协议、规则、代理链路、进程名和实时上下行。
+## User Guide
 
-## 主控 VPS
+- [English](https://nezhahq.github.io/en_US/index.html)
+- [中文文档](https://nezhahq.github.io/index.html)
 
-主控就是你打开网页看的那台 VPS。没有域名也可以，先用公网 IP。
+## Contributing
 
-```bash
-git clone https://github.com/yikkrrtykj/vps-netwatch.git
-cd vps-netwatch
-nano config.yaml
-```
+### Translation
 
-最小 `config.yaml`：
+<a href="https://hosted.weblate.org/engage/nezha/">
+<img src="https://hosted.weblate.org/widget/nezha/multi-blue.svg" alt="Translation status" />
+</a>
 
-```yaml
-dashboard:
-  listen: "0.0.0.0:8787"
-  public_url: "http://主控VPS公网IP:8787"
-  data_path: "./data/vps-netwatch.db"
+Is Nezha not in your language, or the translation is incorrect or incomplete? Get involved in the translations on [Hosted Weblate](https://hosted.weblate.org/engage/nezha/).
 
-auth:
-  token: "改成一个很长的随机密码"
+## Screenshots
 
-mihomo:
-  controllers: []
+| 用户前台 [@hamster1963](https://github.com/hamster1963) | 管理后台 [@nezhahq](https://github.com/nezhahq) |
+|---|---|
+| ![user](.github/user-frontend.20241128.png)  | ![admin](.github/admin-frontend.20241220.jpg)  |
+| [hamster1963/nezha-dash](https://github.com/hamster1963/nezha-dash)  | [nezhahq/admin-frontend](https://github.com/nezhahq/admin-frontend)  |
 
-vps_nodes: []
-probes: []
-```
+add your theme to [service/singleton/frontend-templates.yaml](service/singleton/frontend-templates.yaml)
 
-然后运行主控：
+## Contributors
 
-```bash
-docker compose -f deploy/docker-compose.yml up -d --build
-```
+<!--GAMFC_DELIMITER--><a href="https://github.com/naiba" title="naiba"><img src="https://avatars.githubusercontent.com/u/29243953?v=4" width="50;" alt="naiba"/></a>
+<a href="https://github.com/uubulb" title="UUBulb"><img src="https://avatars.githubusercontent.com/u/35923940?v=4" width="50;" alt="UUBulb"/></a>
+<a href="https://github.com/AkkiaS7" title="Akkia"><img src="https://avatars.githubusercontent.com/u/68485070?v=4" width="50;" alt="Akkia"/></a>
+<a href="https://github.com/matchch" title="卖女孩的小火柴"><img src="https://avatars.githubusercontent.com/u/44471469?v=4" width="50;" alt="卖女孩的小火柴"/></a>
+<a href="https://github.com/nap0o" title="nap0o"><img src="https://avatars.githubusercontent.com/u/144927971?v=4" width="50;" alt="nap0o"/></a>
+<a href="https://github.com/dysf888" title="黑歌"><img src="https://avatars.githubusercontent.com/u/47450409?v=4" width="50;" alt="黑歌"/></a>
+<a href="https://github.com/xykt" title="xykt"><img src="https://avatars.githubusercontent.com/u/152045469?v=4" width="50;" alt="xykt"/></a>
+<a href="https://github.com/weblate" title="Weblate (bot)"><img src="https://avatars.githubusercontent.com/u/1607653?v=4" width="50;" alt="Weblate (bot)"/></a>
+<a href="https://github.com/MikoyChinese" title="MikoyChinese"><img src="https://avatars.githubusercontent.com/u/22676744?v=4" width="50;" alt="MikoyChinese"/></a>
+<a href="https://github.com/JackieSung4ev" title="JackieSung4ev"><img src="https://avatars.githubusercontent.com/u/24974735?v=4" width="50;" alt="JackieSung4ev"/></a>
+<a href="https://github.com/cantoblanco" title="Kris"><img src="https://avatars.githubusercontent.com/u/116849421?v=4" width="50;" alt="Kris"/></a>
+<a href="https://github.com/lemoeo" title="Lemoe"><img src="https://avatars.githubusercontent.com/u/18618627?v=4" width="50;" alt="Lemoe"/></a>
+<a href="https://github.com/spiritLHLS" title="spiritlhl"><img src="https://avatars.githubusercontent.com/u/103393591?v=4" width="50;" alt="spiritlhl"/></a>
+<a href="https://github.com/liuyanxi975" title="刘颜溪"><img src="https://avatars.githubusercontent.com/u/24417037?v=4" width="50;" alt="刘颜溪"/></a>
+<a href="https://github.com/CosmosZ-code" title="CosmosZ-code"><img src="https://avatars.githubusercontent.com/u/81398224?v=4" width="50;" alt="CosmosZ-code"/></a>
+<a href="https://github.com/lvgj-stack" title="Ko no dio"><img src="https://avatars.githubusercontent.com/u/38449861?v=4" width="50;" alt="Ko no dio"/></a>
+<a href="https://github.com/hhhkkk520" title="Kris"><img src="https://avatars.githubusercontent.com/u/52115472?v=4" width="50;" alt="Kris"/></a>
+<a href="https://github.com/Mmx233" title="Mmx233"><img src="https://avatars.githubusercontent.com/u/36563672?v=4" width="50;" alt="Mmx233"/></a>
+<a href="https://github.com/rootmelo92118" title="rootmelo92118"><img src="https://avatars.githubusercontent.com/u/32770959?v=4" width="50;" alt="rootmelo92118"/></a>
+<a href="https://github.com/Moraxyc" title="Moraxyc Xu"><img src="https://avatars.githubusercontent.com/u/69713071?v=4" width="50;" alt="Moraxyc Xu"/></a>
+<a href="https://github.com/1ridic" title="1ridic"><img src="https://avatars.githubusercontent.com/u/88495501?v=4" width="50;" alt="1ridic"/></a>
+<a href="https://github.com/hamster1963" title="仓鼠"><img src="https://avatars.githubusercontent.com/u/71394853?v=4" width="50;" alt="仓鼠"/></a>
+<a href="https://github.com/zhucaidan" title="zhucaidan"><img src="https://avatars.githubusercontent.com/u/47970938?v=4" width="50;" alt="zhucaidan"/></a>
+<a href="https://github.com/iilemon" title="Sean"><img src="https://avatars.githubusercontent.com/u/33201711?v=4" width="50;" alt="Sean"/></a>
+<a href="https://github.com/lyj0309" title="lyj"><img src="https://avatars.githubusercontent.com/u/50474995?v=4" width="50;" alt="lyj"/></a>
+<a href="https://github.com/fscarmen" title="fscarmen"><img src="https://avatars.githubusercontent.com/u/62703343?v=4" width="50;" alt="fscarmen"/></a>
+<a href="https://github.com/ch8o" title="windingFlame"><img src="https://avatars.githubusercontent.com/u/9103372?v=4" width="50;" alt="windingFlame"/></a>
+<a href="https://github.com/MemoryShadow" title="JSker9"><img src="https://avatars.githubusercontent.com/u/31596045?v=4" width="50;" alt="JSker9"/></a>
+<a href="https://github.com/HsukqiLee" title="Hsukqi Lee"><img src="https://avatars.githubusercontent.com/u/79034142?v=4" width="50;" alt="Hsukqi Lee"/></a>
+<a href="https://github.com/DarcJC" title="Darc Z."><img src="https://avatars.githubusercontent.com/u/53445798?v=4" width="50;" alt="Darc Z."/></a>
+<a href="https://github.com/Creling" title="Creling"><img src="https://avatars.githubusercontent.com/u/43109504?v=4" width="50;" alt="Creling"/></a>
+<a href="https://github.com/coreff" title="Core F"><img src="https://avatars.githubusercontent.com/u/38347122?v=4" width="50;" alt="Core F"/></a>
+<a href="https://github.com/adminsama" title="adminsama"><img src="https://avatars.githubusercontent.com/u/60880076?v=4" width="50;" alt="adminsama"/></a>
+<a href="https://github.com/acgpiano" title="Acgpiano"><img src="https://avatars.githubusercontent.com/u/15900800?v=4" width="50;" alt="Acgpiano"/></a>
+<a href="https://github.com/eya46" title="eya46"><img src="https://avatars.githubusercontent.com/u/61458340?v=4" width="50;" alt="eya46"/></a>
+<a href="https://github.com/guoyongchang" title="guoyongchang"><img src="https://avatars.githubusercontent.com/u/10484506?v=4" width="50;" alt="guoyongchang"/></a>
+<a href="https://github.com/hiDandelion" title="hiDandelion"><img src="https://avatars.githubusercontent.com/u/77157418?v=4" width="50;" alt="hiDandelion"/></a>
+<a href="https://github.com/honeok" title="honeok"><img src="https://avatars.githubusercontent.com/u/100125733?v=4" width="50;" alt="honeok"/></a>
+<a href="https://github.com/yuanweize" title="IYUANWEIZE"><img src="https://avatars.githubusercontent.com/u/30067203?v=4" width="50;" alt="IYUANWEIZE"/></a>
+<a href="https://github.com/igophper" title="igophper"><img src="https://avatars.githubusercontent.com/u/34326532?v=4" width="50;" alt="igophper"/></a>
+<a href="https://github.com/lvyaoting" title="lvyaoting"><img src="https://avatars.githubusercontent.com/u/166296299?v=4" width="50;" alt="lvyaoting"/></a>
+<a href="https://github.com/quanljh" title="quanljh"><img src="https://avatars.githubusercontent.com/u/38105306?v=4" width="50;" alt="quanljh"/></a>
+<a href="https://github.com/unclezs" title="unclezs"><img src="https://avatars.githubusercontent.com/u/42318775?v=4" width="50;" alt="unclezs"/></a>
+<a href="https://github.com/ysicing" title="缘生"><img src="https://avatars.githubusercontent.com/u/8605565?v=4" width="50;" alt="缘生"/></a>
+<a href="https://github.com/yanhao98" title="严浩"><img src="https://avatars.githubusercontent.com/u/37316281?v=4" width="50;" alt="严浩"/></a>
+<a href="https://github.com/arkylin" title="凌"><img src="https://avatars.githubusercontent.com/u/35104502?v=4" width="50;" alt="凌"/></a>
+<a href="https://github.com/yumusb" title="榆木"><img src="https://avatars.githubusercontent.com/u/43062104?v=4" width="50;" alt="榆木"/></a>
+<a href="https://github.com/colour93" title="93"><img src="https://avatars.githubusercontent.com/u/64313711?v=4" width="50;" alt="93"/></a>
+<a href="https://github.com/hmsjy2017" title="Tony"><img src="https://avatars.githubusercontent.com/u/42692274?v=4" width="50;" alt="Tony"/></a>
+<a href="https://github.com/TomyJan" title="TomyJan"><img src="https://avatars.githubusercontent.com/u/67973160?v=4" width="50;" alt="TomyJan"/></a>
+<a href="https://github.com/nickfox-taterli" title="Tater Li"><img src="https://avatars.githubusercontent.com/u/19658596?v=4" width="50;" alt="Tater Li"/></a>
+<a href="https://github.com/IamTaoChen" title="Tao Chen"><img src="https://avatars.githubusercontent.com/u/42793494?v=4" width="50;" alt="Tao Chen"/></a>
+<a href="https://github.com/Septrum101" title="Spetrum"><img src="https://avatars.githubusercontent.com/u/11692994?v=4" width="50;" alt="Spetrum"/></a>
+<a href="https://github.com/NikoCat233" title="NikoCat233"><img src="https://avatars.githubusercontent.com/u/139348239?v=4" width="50;" alt="NikoCat233"/></a>
+<a href="https://github.com/dreamingsleeping" title="Nanjing Hopefun Network Technology Co. Ltd."><img src="https://avatars.githubusercontent.com/u/13828658?v=4" width="50;" alt="Nanjing Hopefun Network Technology Co. Ltd."/></a>
+<a href="https://github.com/silver-ymz" title="Mingzhuo Yin"><img src="https://avatars.githubusercontent.com/u/78400701?v=4" width="50;" alt="Mingzhuo Yin"/></a>
+<a href="https://github.com/MartijnLindeman" title="Martijn Lindeman"><img src="https://avatars.githubusercontent.com/u/78365708?v=4" width="50;" alt="Martijn Lindeman"/></a>
+<a href="https://github.com/funnyzak" title="Leon"><img src="https://avatars.githubusercontent.com/u/2562087?v=4" width="50;" alt="Leon"/></a>
+<a href="https://github.com/KorenKrita" title="KorenKrita"><img src="https://avatars.githubusercontent.com/u/22239339?v=4" width="50;" alt="KorenKrita"/></a>
+<a href="https://github.com/techotaku" title="Ian Li"><img src="https://avatars.githubusercontent.com/u/1948179?v=4" width="50;" alt="Ian Li"/></a>
+<a href="https://github.com/GreenTeodoro839" title="YiPing Zhang"><img src="https://avatars.githubusercontent.com/u/77104800?v=4" width="50;" alt="YiPing Zhang"/></a>
+<a href="https://github.com/Es-dese" title="Esdese"><img src="https://avatars.githubusercontent.com/u/71542548?v=4" width="50;" alt="Esdese"/></a>
+<a href="https://github.com/wwng2333" title=":D"><img src="https://avatars.githubusercontent.com/u/17147265?v=4" width="50;" alt=":D"/></a>
+<a href="https://github.com/wellcoming" title="Coming"><img src="https://avatars.githubusercontent.com/u/74850890?v=4" width="50;" alt="Coming"/></a><!--GAMFC_DELIMITER_END-->
 
-浏览器访问：
+## Special Thanks
+- [IPInfo](https://ipinfo.io/) for providing an accurate GeoIP Database.
 
-```text
-http://主控VPS公网IP:8787
-```
+## Star History
 
-`config.example.yaml` 只是参考模板，不一定要先 `cp config.example.yaml config.yaml`。你可以直接新建 `config.yaml` 并粘贴上面的最小配置。
-
-## 新增 VPS 探针
-
-新买一台 VPS 后，不需要先在总面板手动新增 agent。只要这台 VPS 跑 agent，并且使用同一个 `token`，它就会自动出现在主控面板。
-
-在新 VPS 上：
-
-```bash
-git clone https://github.com/yikkrrtykj/vps-netwatch.git
-cd vps-netwatch
-nano config.yaml
-```
-
-最小 agent 配置：
-
-```yaml
-dashboard:
-  public_url: "http://主控VPS公网IP:8787"
-
-auth:
-  token: "和主控一样的token"
-```
-
-编译并运行：
-
-```bash
-go build -o bin/agent ./cmd/agent
-./bin/agent -config config.yaml -id jp-vps-01
-```
-
-`jp-vps-01` 换成这台 VPS 的唯一名字，比如 `hk-vps-01`、`sg-vps-02`、`us-vps-01`。
-
-长期运行可以用 systemd：
-
-```bash
-go build -o bin/agent ./cmd/agent
-sudo mkdir -p /opt/vps-netwatch
-sudo cp -r bin config.yaml /opt/vps-netwatch/
-sudo cp deploy/vps-netwatch-agent.service /etc/systemd/system/
-sudo sed -i 's/-id main-vps/-id jp-vps-01/' /etc/systemd/system/vps-netwatch-agent.service
-sudo systemctl daemon-reload
-sudo systemctl enable --now vps-netwatch-agent
-```
-
-## 内网代理 VM 可选
-
-如果你只想做多 VPS 监控，可以先不部署 collector。
-
-如果你想看 mihomo/Clash 连接、游戏服务器 IP、代理链路，就在内网代理 VM 上跑 collector。你的代理 VM 现在是 Windows 也能用，只要它能访问 mihomo external-controller。
-
-如果你习惯 Ubuntu，我更推荐把代理 VM 换成 Ubuntu：
-
-- 更适合长期运行服务，systemd 管理省心。
-- mihomo、collector、日志、自动重启都更好维护。
-- 不需要 Windows GUI，资源占用更低。
-- 以后做网络工具和排障命令也更顺手。
-
-但如果现有 Windows 代理已经很稳定，不需要为了第一版强行迁移。`collector` 的原则很简单：它跑在哪里都可以，只要能访问 mihomo API，并能访问主控 `dashboard.public_url`。
-
-Ubuntu 代理 VM 上的 collector 最小配置：
-
-```yaml
-dashboard:
-  public_url: "http://主控VPS公网IP:8787"
-
-auth:
-  token: "和主控一样的token"
-
-collectors:
-  - id: "lan-proxy-vm"
-    dashboard_url: "http://主控VPS公网IP:8787"
-    interval: "10s"
-
-mihomo:
-  controllers:
-    - name: "proxy-vm"
-      base_url: "http://127.0.0.1:9090"
-      secret: ""
-      role: "proxy"
-```
-
-运行：
-
-```bash
-go build -o bin/collector ./cmd/collector
-./bin/collector -config config.yaml -id lan-proxy-vm
-```
-
-## 哪些 IP 和 URL 要改
-
-- `主控VPS公网IP`：必须改成主控 VPS 的公网 IP。
-- `auth.token`：必须改，主控、agent、collector 三边保持一致。
-- `dashboard.public_url`：没有域名就用 `http://主控VPS公网IP:8787`。
-- 有域名和反代后，再改成 `https://你的域名`。
-- `agents` 和 `vps_nodes` 都不是必填；新 VPS agent 能自动上报。
-- `probes` 可先留空，后续再加游戏服务器 IP 或关键节点。
-
-## API
-
-- `GET /api/connections`
-- `GET /api/egress`
-- `GET /api/latency`
-- `GET /api/vps/nodes`
-- `GET /api/errors`
-- `POST /api/collector/v1/push`
-
-带 token 时使用：
-
-```bash
-curl -H "Authorization: Bearer 你的token" http://主控VPS公网IP:8787/api/vps/nodes
-```
-
-## 安全边界
-
-- 不要把 mihomo controller 暴露到公网。
-- agent/collector 都是主动推送到 dashboard，不需要 dashboard 反连内网。
-- 默认不保存包内容，只保存连接元数据、VPS 状态和探测结果。
-- 如果终端本地 mihomo 不开放 controller，第一版只能看到代理 VM/VPS 能看到的连接。
+[![Star History Chart](https://api.star-history.com/svg?repos=nezhahq/nezha&type=Timeline)](https://star-history.com/#nezhahq/nezha&Timeline)
