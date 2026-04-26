@@ -84,25 +84,6 @@ type ServiceStatus struct {
 	Error  string `json:"error,omitempty"`
 }
 
-type TopologyNode struct {
-	ID     string            `json:"id"`
-	Label  string            `json:"label"`
-	Type   string            `json:"type"`
-	Status string            `json:"status"`
-	Meta   map[string]string `json:"meta,omitempty"`
-}
-
-type TopologyEdge struct {
-	From  string `json:"from"`
-	To    string `json:"to"`
-	Label string `json:"label,omitempty"`
-}
-
-type Topology struct {
-	Nodes []TopologyNode `json:"nodes"`
-	Edges []TopologyEdge `json:"edges"`
-}
-
 type CollectorPush struct {
 	CollectorID string             `json:"collector_id"`
 	Timestamp   time.Time          `json:"timestamp"`
@@ -111,7 +92,6 @@ type CollectorPush struct {
 	Egress      *EgressResult      `json:"egress,omitempty"`
 	Latency     []ProbeResult      `json:"latency"`
 	VPSNodes    []VPSNodeStatus    `json:"vps_nodes"`
-	Topology    *Topology          `json:"topology,omitempty"`
 	Errors      []CollectorError   `json:"errors,omitempty"`
 }
 

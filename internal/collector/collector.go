@@ -13,7 +13,6 @@ import (
 	"github.com/yikkrrtykj/vps-netwatch/internal/mihomo"
 	"github.com/yikkrrtykj/vps-netwatch/internal/model"
 	"github.com/yikkrrtykj/vps-netwatch/internal/probe"
-	"github.com/yikkrrtykj/vps-netwatch/internal/topology"
 )
 
 type Runner struct {
@@ -34,7 +33,6 @@ func (r *Runner) Collect(ctx context.Context, collectorID string) model.Collecto
 	push := model.CollectorPush{
 		CollectorID: collectorID,
 		Timestamp:   time.Now().UTC(),
-		Topology:    ptr(topology.Default()),
 	}
 
 	for _, ctrl := range r.cfg.Mihomo.Controllers {
@@ -113,8 +111,4 @@ func Interval(cfg config.Config, collectorID string) time.Duration {
 		return cfg.Collectors[0].Interval
 	}
 	return 10 * time.Second
-}
-
-func ptr[T any](value T) *T {
-	return &value
 }

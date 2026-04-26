@@ -10,7 +10,6 @@ import (
 	"github.com/yikkrrtykj/vps-netwatch/internal/config"
 	"github.com/yikkrrtykj/vps-netwatch/internal/model"
 	"github.com/yikkrrtykj/vps-netwatch/internal/store"
-	"github.com/yikkrrtykj/vps-netwatch/internal/topology"
 )
 
 type Server struct {
@@ -40,7 +39,6 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/latency", s.state("latency", []model.ProbeResult{}))
 	s.mux.HandleFunc("GET /api/errors", s.state("collector_errors", []model.CollectorError{}))
 	s.mux.HandleFunc("GET /api/vps/nodes", s.vpsNodes)
-	s.mux.HandleFunc("GET /api/topology", s.topology)
 	s.mux.HandleFunc("POST /api/collector/v1/push", s.collectorPush)
 	s.mux.Handle("/", http.FileServer(http.Dir("web/dist")))
 }
@@ -100,19 +98,6 @@ func (s *Server) vpsNodes(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	writeJSON(w, http.StatusOK, fallback)
-}
-
-func (s *Server) topology(w http.ResponseWriter, r *http.Request) {
-	topo := topology.Default()
-	ok, err := s.store.LoadState(r.Context(), "topology", &topo)
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, err)
-		return
-	}
-	if !ok {
-		topo = topology.Default()
-	}
-	writeJSON(w, http.StatusOK, topo)
 }
 
 func (s *Server) collectorPush(w http.ResponseWriter, r *http.Request) {

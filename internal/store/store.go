@@ -143,11 +143,6 @@ func (s *Store) SaveCollectorPush(ctx context.Context, push model.CollectorPush)
 			return err
 		}
 	}
-	if push.Topology != nil {
-		if err := saveStateTx(ctx, tx, "topology", push.Topology); err != nil {
-			return err
-		}
-	}
 	return tx.Commit()
 }
 

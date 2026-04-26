@@ -15,7 +15,6 @@
 - 出口检测：collector 检测当前公网出口 IP，dashboard 显示最近上报结果。
 - 延迟诊断：对配置里的目标做 TCP connect RTT；ICMP/UDP 后续按权限和设备能力扩展。
 - VPS 监控：接收多台 VPS agent 上报的 CPU、内存、磁盘、流量、uptime、sing-box 状态。
-- 接入拓扑：默认展示 dashboard、VPS agent、可选 collector、mihomo API 和探测目标之间的关系；不写入任何私有内网设备型号。
 
 ## 快速开始
 
@@ -67,12 +66,33 @@ docker compose -f deploy/docker-compose.yml up -d --build
 核心配置在 `config.yaml`：
 
 - `dashboard.listen`：dashboard 监听地址；Docker 部署可用 `0.0.0.0:8787`，只走本机反代时可改成 `127.0.0.1:8787`。
-- `dashboard.public_url`：collector 推送目标。
-- `auth.token`：dashboard API 和 collector push 使用的 Bearer token。
-- `agents`：多台 VPS agent 的接入配置。
+- `dashboard.public_url`：agent/collector 推送目标。没有域名时直接填 `http://主控VPS公网IP:8787`。
+- `auth.token`：dashboard API、agent 和 collector push 使用的 Bearer token，必须改成随机长密码。
+- `agents`：可选的本地 agent 命名/标签配置。新 VPS 不需要提前写进主控总表，只要运行 agent 时使用唯一 `-id` 并配置相同 token 即可接入。
 - `mihomo.controllers`：一个或多个 mihomo external-controller，只读访问，可选。
-- `vps_nodes`：VPS 节点定义。
+- `vps_nodes`：可选占位节点；agent 正常上报后会自动出现在面板。
 - `probes`：要主动检测延迟的目标。
+
+## 新增 VPS 探针
+
+新买一台 VPS 后，不需要在主控里手动新增节点。把项目放到新 VPS，准备最小配置：
+
+```yaml
+dashboard:
+  public_url: "http://主控VPS公网IP:8787"
+
+auth:
+  token: "和主控一样的token"
+```
+
+然后运行：
+
+```bash
+go build -o bin/agent ./cmd/agent
+./bin/agent -config config.yaml -id jp-vps-01
+```
+
+`jp-vps-01` 换成这台 VPS 的唯一名字。agent 会自动上报公网出口 IP、CPU、内存、磁盘、流量、uptime 和 sing-box 状态。
 
 ## API
 
@@ -80,7 +100,6 @@ docker compose -f deploy/docker-compose.yml up -d --build
 - `GET /api/egress`
 - `GET /api/latency`
 - `GET /api/vps/nodes`
-- `GET /api/topology`
 - `GET /api/errors`
 - `POST /api/collector/v1/push`
 

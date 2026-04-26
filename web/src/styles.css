@@ -313,38 +313,6 @@ dd {
   border-bottom: 0;
 }
 
-.topology {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 10px;
-  align-items: stretch;
-}
-
-.node {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 6px;
-  min-height: 98px;
-  border: 1px solid #d8e2ef;
-  border-radius: 8px;
-  background: #f9fbfe;
-  padding: 12px;
-}
-
-.node svg {
-  color: #0b5cab;
-}
-
-.edge {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 34px;
-  color: #627085;
-  font-size: 13px;
-}
-
 .linkList,
 .metricStack {
   display: flex;

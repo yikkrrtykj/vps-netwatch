@@ -7,9 +7,7 @@ import {
   Gauge,
   Globe2,
   KeyRound,
-  Network,
   RefreshCw,
-  Router,
   Server,
   Settings,
 } from "lucide-react";
@@ -20,7 +18,6 @@ const tabs = [
   { id: "egress", label: "出口检测", icon: Globe2 },
   { id: "latency", label: "延迟诊断", icon: Gauge },
   { id: "vps", label: "VPS 监控", icon: Server },
-  { id: "topology", label: "网络拓扑", icon: Network },
   { id: "settings", label: "设置", icon: Settings },
 ];
 
@@ -34,7 +31,6 @@ function App() {
     egress: null,
     latency: [],
     vps: [],
-    topology: { nodes: [], edges: [] },
     errors: [],
   });
 
@@ -46,15 +42,14 @@ function App() {
     setLoading(true);
     setError("");
     try {
-      const [connections, egress, latency, vps, topology, errors] = await Promise.all([
+      const [connections, egress, latency, vps, errors] = await Promise.all([
         api("/api/connections?limit=250", authHeaders),
         api("/api/egress", authHeaders),
         api("/api/latency", authHeaders),
         api("/api/vps/nodes", authHeaders),
-        api("/api/topology", authHeaders),
         api("/api/errors", authHeaders),
       ]);
-      setData({ connections, egress, latency, vps, topology, errors });
+      setData({ connections, egress, latency, vps, errors });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -123,7 +118,6 @@ function App() {
         {active === "egress" && <Egress result={data.egress} />}
         {active === "latency" && <Latency rows={data.latency} />}
         {active === "vps" && <VPS rows={data.vps} />}
-        {active === "topology" && <Topology topology={data.topology} />}
         {active === "settings" && <SettingsPanel token={token} onToken={saveToken} />}
       </section>
     </main>
@@ -252,27 +246,6 @@ function VPS({ rows }) {
   );
 }
 
-function Topology({ topology }) {
-  const nodes = topology?.nodes || [];
-  const edges = topology?.edges || [];
-  return (
-    <div className="panel">
-      <div className="topology">
-        {nodes.map((node, index) => (
-          <React.Fragment key={node.id}>
-            <div className={`node ${node.type}`}>
-              <Router size={18} />
-              <strong>{node.label}</strong>
-              <span>{node.status}</span>
-            </div>
-            {index < nodes.length - 1 && <div className="edge">{edges[index]?.label || "→"}</div>}
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function SettingsPanel({ token, onToken }) {
   return (
     <div className="panel narrow">
@@ -324,7 +297,6 @@ function subtitle(tab) {
     egress: "确认代理 VM、网关或 VPS 当前公网出口。",
     latency: "对游戏 IP、VPS 或关键服务做 TCP 延迟采样。",
     vps: "汇总多台 VPS agent 与代理节点状态。",
-    topology: "展示通用部署接入关系，不包含私有内网设备型号。",
     settings: "配置浏览器访问 dashboard API 的 token。",
   };
   return map[tab] || "";
