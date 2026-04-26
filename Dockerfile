@@ -8,7 +8,7 @@ RUN npm run build
 FROM golang:1.22-alpine AS build
 WORKDIR /src
 RUN apk add --no-cache ca-certificates
-COPY go.mod go.sum* ./
+COPY go.mod ./
 RUN go mod download
 COPY . .
 COPY --from=web /src/web/dist ./web/dist

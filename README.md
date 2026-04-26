@@ -1,81 +1,76 @@
 # vps-netwatch
 
-`vps-netwatch` 是一个独立的 VPS/代理/游戏网络观测项目。默认形态类似哪吒监控：一个 dashboard 看总面板，多台 VPS 跑轻量 agent 接入；同时额外补齐 mihomo/Clash 连接、游戏服务器目标 IP、出口检测和延迟诊断。
+`vps-netwatch` 是一个独立的 VPS/代理/游戏网络观测项目。默认形态类似哪吒监控：一台 VPS 跑 `dashboard` 做总面板，其他 VPS 跑轻量 `agent` 接入；内网代理 VM 可选跑 `collector`，用来读取 mihomo/Clash 连接。
 
 ## 架构
 
-- `dashboard`：运行在一台主 VPS 上，提供 Web 面板、API、SQLite 历史记录和所有节点总览。
-- `agent`：运行在每台接入 VPS 上，采集 CPU、内存、磁盘、网卡流量、uptime、sing-box 状态，并主动推送到 dashboard。
-- `collector`：可选，运行在内网 Windows 代理 VM 或 Linux VM，只读读取 mihomo API，帮助分析游戏连接和出口。
-- `终端/游戏电脑`：默认不安装 agent、不抓包、不装驱动。
+- `dashboard`：主控面板，运行在一台主 VPS 上，负责 Web UI、API、SQLite 数据库和所有 VPS 总览。
+- `agent`：探针，运行在每台被监控 VPS 上，主动上报 CPU、内存、磁盘、网卡流量、uptime、sing-box 状态和出口 IP。
+- `collector`：可选组件，运行在内网代理 VM 上，只读读取 mihomo API，用来分析连接目标 IP、端口、规则和代理链路。
+- `终端/游戏电脑`：默认不安装任何东西，不抓包，不装驱动。
 
 ## 第一版能力
 
-- 实时连接：读取 mihomo `/connections`，展示目标 IP/端口、协议、规则、代理链路、进程名和实时上下行。
-- 出口检测：collector 检测当前公网出口 IP，dashboard 显示最近上报结果。
-- 延迟诊断：对配置里的目标做 TCP connect RTT；ICMP/UDP 后续按权限和设备能力扩展。
-- VPS 监控：接收多台 VPS agent 上报的 CPU、内存、磁盘、流量、uptime、sing-box 状态。
+- VPS 监控：多台 VPS agent 自动接入总面板。
+- 出口检测：agent/collector 上报当前公网出口 IP。
+- 延迟诊断：对配置里的目标做 TCP connect RTT。
+- mihomo 连接：可选读取 `/connections` 和 `/traffic`，显示目标 IP/端口、协议、规则、代理链路、进程名和实时上下行。
 
-## 快速开始
+## 主控 VPS
+
+主控就是你打开网页看的那台 VPS。没有域名也可以，先用公网 IP。
 
 ```bash
-cp config.example.yaml config.yaml
-go mod tidy
-go run ./cmd/dashboard -config config.yaml
+git clone https://github.com/yikkrrtykj/vps-netwatch.git
+cd vps-netwatch
+nano config.yaml
 ```
 
-在内网代理 VM 上运行 collector：
+最小 `config.yaml`：
 
-```bash
-go run ./cmd/collector -config config.yaml
+```yaml
+dashboard:
+  listen: "0.0.0.0:8787"
+  public_url: "http://主控VPS公网IP:8787"
+  data_path: "./data/vps-netwatch.db"
+
+auth:
+  token: "改成一个很长的随机密码"
+
+mihomo:
+  controllers: []
+
+vps_nodes: []
+probes: []
 ```
 
-在其他 VPS 上运行 agent 接入总面板：
+然后运行主控：
 
 ```bash
-go run ./cmd/agent -config config.yaml -id hk-vps-01
-```
-
-前端开发：
-
-```bash
-cd web
-npm install
-npm run dev
-```
-
-生产构建后，`dashboard` 会优先服务 `web/dist` 静态文件：
-
-```bash
-cd web && npm run build
-cd ..
-go build -o bin/dashboard ./cmd/dashboard
-go build -o bin/agent ./cmd/agent
-go build -o bin/collector ./cmd/collector
-```
-
-Docker Compose 运行主控：
-
-```bash
-cp config.example.yaml config.yaml
 docker compose -f deploy/docker-compose.yml up -d --build
 ```
 
-## 配置说明
+浏览器访问：
 
-核心配置在 `config.yaml`：
+```text
+http://主控VPS公网IP:8787
+```
 
-- `dashboard.listen`：dashboard 监听地址；Docker 部署可用 `0.0.0.0:8787`，只走本机反代时可改成 `127.0.0.1:8787`。
-- `dashboard.public_url`：agent/collector 推送目标。没有域名时直接填 `http://主控VPS公网IP:8787`。
-- `auth.token`：dashboard API、agent 和 collector push 使用的 Bearer token，必须改成随机长密码。
-- `agents`：可选的本地 agent 命名/标签配置。新 VPS 不需要提前写进主控总表，只要运行 agent 时使用唯一 `-id` 并配置相同 token 即可接入。
-- `mihomo.controllers`：一个或多个 mihomo external-controller，只读访问，可选。
-- `vps_nodes`：可选占位节点；agent 正常上报后会自动出现在面板。
-- `probes`：要主动检测延迟的目标。
+`config.example.yaml` 只是参考模板，不一定要先 `cp config.example.yaml config.yaml`。你可以直接新建 `config.yaml` 并粘贴上面的最小配置。
 
 ## 新增 VPS 探针
 
-新买一台 VPS 后，不需要在主控里手动新增节点。把项目放到新 VPS，准备最小配置：
+新买一台 VPS 后，不需要先在总面板手动新增 agent。只要这台 VPS 跑 agent，并且使用同一个 `token`，它就会自动出现在主控面板。
+
+在新 VPS 上：
+
+```bash
+git clone https://github.com/yikkrrtykj/vps-netwatch.git
+cd vps-netwatch
+nano config.yaml
+```
+
+最小 agent 配置：
 
 ```yaml
 dashboard:
@@ -85,14 +80,79 @@ auth:
   token: "和主控一样的token"
 ```
 
-然后运行：
+编译并运行：
 
 ```bash
 go build -o bin/agent ./cmd/agent
 ./bin/agent -config config.yaml -id jp-vps-01
 ```
 
-`jp-vps-01` 换成这台 VPS 的唯一名字。agent 会自动上报公网出口 IP、CPU、内存、磁盘、流量、uptime 和 sing-box 状态。
+`jp-vps-01` 换成这台 VPS 的唯一名字，比如 `hk-vps-01`、`sg-vps-02`、`us-vps-01`。
+
+长期运行可以用 systemd：
+
+```bash
+go build -o bin/agent ./cmd/agent
+sudo mkdir -p /opt/vps-netwatch
+sudo cp -r bin config.yaml /opt/vps-netwatch/
+sudo cp deploy/vps-netwatch-agent.service /etc/systemd/system/
+sudo sed -i 's/-id main-vps/-id jp-vps-01/' /etc/systemd/system/vps-netwatch-agent.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now vps-netwatch-agent
+```
+
+## 内网代理 VM 可选
+
+如果你只想做多 VPS 监控，可以先不部署 collector。
+
+如果你想看 mihomo/Clash 连接、游戏服务器 IP、代理链路，就在内网代理 VM 上跑 collector。你的代理 VM 现在是 Windows 也能用，只要它能访问 mihomo external-controller。
+
+如果你习惯 Ubuntu，我更推荐把代理 VM 换成 Ubuntu：
+
+- 更适合长期运行服务，systemd 管理省心。
+- mihomo、collector、日志、自动重启都更好维护。
+- 不需要 Windows GUI，资源占用更低。
+- 以后做网络工具和排障命令也更顺手。
+
+但如果现有 Windows 代理已经很稳定，不需要为了第一版强行迁移。`collector` 的原则很简单：它跑在哪里都可以，只要能访问 mihomo API，并能访问主控 `dashboard.public_url`。
+
+Ubuntu 代理 VM 上的 collector 最小配置：
+
+```yaml
+dashboard:
+  public_url: "http://主控VPS公网IP:8787"
+
+auth:
+  token: "和主控一样的token"
+
+collectors:
+  - id: "lan-proxy-vm"
+    dashboard_url: "http://主控VPS公网IP:8787"
+    interval: "10s"
+
+mihomo:
+  controllers:
+    - name: "proxy-vm"
+      base_url: "http://127.0.0.1:9090"
+      secret: ""
+      role: "proxy"
+```
+
+运行：
+
+```bash
+go build -o bin/collector ./cmd/collector
+./bin/collector -config config.yaml -id lan-proxy-vm
+```
+
+## 哪些 IP 和 URL 要改
+
+- `主控VPS公网IP`：必须改成主控 VPS 的公网 IP。
+- `auth.token`：必须改，主控、agent、collector 三边保持一致。
+- `dashboard.public_url`：没有域名就用 `http://主控VPS公网IP:8787`。
+- 有域名和反代后，再改成 `https://你的域名`。
+- `agents` 和 `vps_nodes` 都不是必填；新 VPS agent 能自动上报。
+- `probes` 可先留空，后续再加游戏服务器 IP 或关键节点。
 
 ## API
 
@@ -106,17 +166,12 @@ go build -o bin/agent ./cmd/agent
 带 token 时使用：
 
 ```bash
-curl -H "Authorization: Bearer change-me" http://127.0.0.1:8787/api/connections
+curl -H "Authorization: Bearer 你的token" http://主控VPS公网IP:8787/api/vps/nodes
 ```
 
 ## 安全边界
 
-- mihomo controller 不建议暴露到公网。
-- agent/collector 都是主动推送到 dashboard，不需要 dashboard 反连内网或其他 VPS。
-- collector 只读读取 mihomo，并由内网主动推送到 VPS。
+- 不要把 mihomo controller 暴露到公网。
+- agent/collector 都是主动推送到 dashboard，不需要 dashboard 反连内网。
 - 默认不保存包内容，只保存连接元数据、VPS 状态和探测结果。
 - 如果终端本地 mihomo 不开放 controller，第一版只能看到代理 VM/VPS 能看到的连接。
-
-## 和哪吒的关系
-
-- 哪吒是成熟方案，本项目采用相同的主控 + agent 接入思路，但额外面向代理出口、mihomo 连接和游戏延迟排障。
