@@ -12,8 +12,8 @@
 ## 第一版能力
 
 - VPS 监控：多台 VPS agent 自动接入总面板。
-- 出口检测：agent/collector 上报当前公网出口 IP。
-- 延迟诊断：对配置里的目标做 TCP connect RTT。
+- 出口检测：按 agent/collector 分别显示当前公网出口 IP。
+- 延迟诊断：按 agent/collector 分别显示配置目标的 TCP connect RTT。
 - mihomo 连接：可选读取 `/connections` 和 `/traffic`，显示目标 IP/端口、协议、规则、代理链路、进程名和实时上下行。
 
 ## 主控 VPS

@@ -39,6 +39,7 @@ func (r *Runner) Collect(ctx context.Context, collectorID string) model.Collecto
 		client := mihomo.New(ctrl)
 		connections, err := client.Connections(ctx)
 		if err == nil {
+			push.ConnectionControllers = append(push.ConnectionControllers, ctrl.Name)
 			push.Connections = append(push.Connections, connections...)
 		} else {
 			push.Errors = append(push.Errors, model.CollectorError{
@@ -58,6 +59,7 @@ func (r *Runner) Collect(ctx context.Context, collectorID string) model.Collecto
 	egress.CollectorID = collectorID
 	push.Egress = &egress
 	push.Latency = probe.RunAll(ctx, r.cfg.Probes)
+	tagProbeResults(push.Latency, collectorID)
 	return push
 }
 
@@ -111,4 +113,10 @@ func Interval(cfg config.Config, collectorID string) time.Duration {
 		return cfg.Collectors[0].Interval
 	}
 	return 10 * time.Second
+}
+
+func tagProbeResults(results []model.ProbeResult, collectorID string) {
+	for i := range results {
+		results[i].CollectorID = collectorID
+	}
 }

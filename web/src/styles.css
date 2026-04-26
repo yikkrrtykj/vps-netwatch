@@ -263,6 +263,11 @@ td span {
   word-break: break-all;
 }
 
+.bigValue.small {
+  margin: 4px 0 10px;
+  font-size: 22px;
+}
+
 dl {
   display: grid;
   grid-template-columns: 92px 1fr;

@@ -28,7 +28,7 @@ function App() {
   const [error, setError] = useState("");
   const [data, setData] = useState({
     connections: [],
-    egress: null,
+    egress: [],
     latency: [],
     vps: [],
     errors: [],
@@ -115,7 +115,7 @@ function App() {
         )}
 
         {active === "connections" && <Connections rows={data.connections} />}
-        {active === "egress" && <Egress result={data.egress} />}
+        {active === "egress" && <Egress rows={data.egress} />}
         {active === "latency" && <Latency rows={data.latency} />}
         {active === "vps" && <VPS rows={data.vps} />}
         {active === "settings" && <SettingsPanel token={token} onToken={saveToken} />}
@@ -169,28 +169,32 @@ function Connections({ rows }) {
   );
 }
 
-function Egress({ result }) {
-  const item = result || {};
+function Egress({ rows }) {
+  const results = Array.isArray(rows) ? rows : rows ? [rows] : [];
   return (
-    <div className="grid two">
-      <section className="panel">
-        <h2>公网出口</h2>
-        <div className="bigValue">{item.ip || "未上报"}</div>
-        <dl>
-          <dt>Collector</dt>
-          <dd>{item.collector_id || "-"}</dd>
-          <dt>来源</dt>
-          <dd>{item.source || "-"}</dd>
-          <dt>检查时间</dt>
-          <dd>{formatTime(item.checked_at)}</dd>
-          <dt>状态</dt>
-          <dd>{item.error ? item.error : "正常"}</dd>
-        </dl>
-      </section>
+    <div className="grid">
+      {results.map((item) => (
+        <section className="item" key={item.collector_id || item.ip || item.checked_at}>
+          <div className="itemTitle">
+            <Globe2 size={18} />
+            <strong>{item.collector_id || "unknown"}</strong>
+          </div>
+          <div className="bigValue small">{item.ip || "未上报"}</div>
+          <dl>
+            <dt>来源</dt>
+            <dd>{item.source || "-"}</dd>
+            <dt>检查时间</dt>
+            <dd>{formatTime(item.checked_at)}</dd>
+            <dt>状态</dt>
+            <dd>{item.error ? item.error : "正常"}</dd>
+          </dl>
+        </section>
+      ))}
+      {results.length === 0 && <div className="panel">等待 agent 或 collector 上报出口 IP</div>}
       <section className="panel">
         <h2>说明</h2>
         <p className="quiet">
-          这里显示的是 collector 所在网络的公网出口。端游终端不装 agent 时，若流量经过代理 VM 或网关，这个结果就是排查代理/VPS出口的主要依据。
+          这里按 agent/collector 分别显示公网出口。端游终端不装 agent 时，若流量经过代理 VM 或网关，对应 collector 的出口结果就是排查代理/VPS 出口的主要依据。
         </p>
       </section>
     </div>
@@ -198,20 +202,22 @@ function Egress({ result }) {
 }
 
 function Latency({ rows }) {
+  const sorted = [...(rows || [])].sort((a, b) => `${a.collector_id}-${a.name}`.localeCompare(`${b.collector_id}-${b.name}`));
   return (
     <div className="grid">
-      {(rows || []).map((row) => (
-        <section className="item" key={`${row.name}-${row.host}-${row.port}`}>
+      {sorted.map((row) => (
+        <section className="item" key={`${row.collector_id}-${row.name}-${row.host}-${row.port}`}>
           <div className="itemTitle">
             <Activity size={18} />
             <strong>{row.name}</strong>
           </div>
           <div className={row.ok ? "status ok" : "status bad"}>{row.ok ? `${row.rtt_ms.toFixed(1)} ms` : "失败"}</div>
+          <p>{row.collector_id || "unknown"}</p>
           <p>{row.host}:{row.port} / {row.protocol}</p>
           {row.error && <p className="errorText">{row.error}</p>}
         </section>
       ))}
-      {(!rows || rows.length === 0) && <div className="panel">等待延迟探测结果</div>}
+      {sorted.length === 0 && <div className="panel">等待延迟探测结果</div>}
     </div>
   );
 }
@@ -237,6 +243,18 @@ function VPS({ rows }) {
           <div className="metricLine">
             <span>磁盘</span>
             <strong>{percent(node.disk?.ratio)}</strong>
+          </div>
+          <div className="metricLine">
+            <span>流量</span>
+            <strong>↓ {formatBytes(node.net?.rx_bytes || 0)} / ↑ {formatBytes(node.net?.tx_bytes || 0)}</strong>
+          </div>
+          <div className="metricLine">
+            <span>在线</span>
+            <strong>{formatDuration(node.uptime_sec || 0)}</strong>
+          </div>
+          <div className="metricLine">
+            <span>sing-box</span>
+            <strong>{serviceText(node.services, "sing-box")}</strong>
           </div>
           <small>{formatTime(node.updated_at)}</small>
         </section>
@@ -317,6 +335,22 @@ function formatBytes(value) {
 function formatTime(value) {
   if (!value) return "-";
   return new Date(value).toLocaleString();
+}
+
+function formatDuration(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "-";
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days > 0) return `${days}天 ${hours}小时`;
+  if (hours > 0) return `${hours}小时 ${minutes}分钟`;
+  return `${minutes}分钟`;
+}
+
+function serviceText(services, name) {
+  const service = (services || []).find((item) => item.name === name);
+  if (!service) return "-";
+  return service.active ? "运行中" : "未运行";
 }
 
 function percent(value) {

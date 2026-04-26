@@ -41,15 +41,16 @@ type EgressResult struct {
 }
 
 type ProbeResult struct {
-	Name      string        `json:"name"`
-	Host      string        `json:"host"`
-	Port      int           `json:"port"`
-	Protocol  string        `json:"protocol"`
-	RTT        time.Duration `json:"rtt"`
-	RTTMillis  float64       `json:"rtt_ms"`
-	OK        bool          `json:"ok"`
-	Error     string        `json:"error,omitempty"`
-	CheckedAt time.Time     `json:"checked_at"`
+	CollectorID string        `json:"collector_id,omitempty"`
+	Name        string        `json:"name"`
+	Host        string        `json:"host"`
+	Port        int           `json:"port"`
+	Protocol    string        `json:"protocol"`
+	RTT         time.Duration `json:"rtt"`
+	RTTMillis   float64       `json:"rtt_ms"`
+	OK          bool          `json:"ok"`
+	Error       string        `json:"error,omitempty"`
+	CheckedAt   time.Time     `json:"checked_at"`
 }
 
 type VPSNodeStatus struct {
@@ -85,14 +86,15 @@ type ServiceStatus struct {
 }
 
 type CollectorPush struct {
-	CollectorID string             `json:"collector_id"`
-	Timestamp   time.Time          `json:"timestamp"`
-	Connections []Connection       `json:"connections"`
-	Traffic     []TrafficSample    `json:"traffic"`
-	Egress      *EgressResult      `json:"egress,omitempty"`
-	Latency     []ProbeResult      `json:"latency"`
-	VPSNodes    []VPSNodeStatus    `json:"vps_nodes"`
-	Errors      []CollectorError   `json:"errors,omitempty"`
+	CollectorID           string             `json:"collector_id"`
+	Timestamp             time.Time          `json:"timestamp"`
+	ConnectionControllers []string           `json:"connection_controllers,omitempty"`
+	Connections           []Connection       `json:"connections"`
+	Traffic               []TrafficSample    `json:"traffic"`
+	Egress                *EgressResult      `json:"egress,omitempty"`
+	Latency               []ProbeResult      `json:"latency"`
+	VPSNodes              []VPSNodeStatus    `json:"vps_nodes"`
+	Errors                []CollectorError   `json:"errors,omitempty"`
 }
 
 type CollectorError struct {

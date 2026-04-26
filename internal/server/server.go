@@ -35,7 +35,7 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/health", s.health)
 	s.mux.HandleFunc("GET /api/connections", s.connections)
-	s.mux.HandleFunc("GET /api/egress", s.state("egress", model.EgressResult{}))
+	s.mux.HandleFunc("GET /api/egress", s.egress)
 	s.mux.HandleFunc("GET /api/latency", s.state("latency", []model.ProbeResult{}))
 	s.mux.HandleFunc("GET /api/errors", s.state("collector_errors", []model.CollectorError{}))
 	s.mux.HandleFunc("GET /api/vps/nodes", s.vpsNodes)
@@ -58,6 +58,18 @@ func (s *Server) connections(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, connections)
+}
+
+func (s *Server) egress(w http.ResponseWriter, r *http.Request) {
+	results, ok, err := s.store.LoadEgress(r.Context())
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err)
+		return
+	}
+	if !ok {
+		results = []model.EgressResult{}
+	}
+	writeJSON(w, http.StatusOK, results)
 }
 
 func (s *Server) state(key string, empty any) http.HandlerFunc {
@@ -161,8 +173,8 @@ func writeErrorMessage(w http.ResponseWriter, status int, message string) {
 
 func cloneEmpty(value any) any {
 	switch value.(type) {
-	case model.EgressResult:
-		return &model.EgressResult{}
+	case []model.EgressResult:
+		return &[]model.EgressResult{}
 	case []model.ProbeResult:
 		return &[]model.ProbeResult{}
 	case []model.CollectorError:

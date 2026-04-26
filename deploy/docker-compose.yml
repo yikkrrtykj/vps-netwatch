@@ -6,8 +6,7 @@ services:
     container_name: vps-netwatch
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8787:8787"
+      - "8787:8787"
     volumes:
       - ../config.yaml:/opt/vps-netwatch/config.yaml:ro
       - ../data:/opt/vps-netwatch/data
-

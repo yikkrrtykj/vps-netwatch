@@ -42,7 +42,7 @@ func (r *Runner) Collect(ctx context.Context, agentID string) model.CollectorPus
 		CollectorID: agentID,
 		Timestamp:   time.Now().UTC(),
 		Egress:      &egress,
-		Latency:     probe.RunAll(ctx, r.cfg.Probes),
+		Latency:     tagProbeResults(probe.RunAll(ctx, r.cfg.Probes), agentID),
 		VPSNodes:    []model.VPSNodeStatus{status},
 	}
 }
@@ -105,4 +105,11 @@ func Interval(cfg config.Config, agentID string) time.Duration {
 		return item.Interval
 	}
 	return 10 * time.Second
+}
+
+func tagProbeResults(results []model.ProbeResult, collectorID string) []model.ProbeResult {
+	for i := range results {
+		results[i].CollectorID = collectorID
+	}
+	return results
 }
