@@ -30,7 +30,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
   var buttonClass = "inset-shadow-2xs inset-shadow-white/20 flex cursor-pointer flex-col items-center gap-0 rounded-[50px] bg-blue-100 p-2.5 text-blue-600 transition-all dark:bg-blue-900 dark:text-blue-100";
   var activeClass = "inset-shadow-black/20 bg-blue-600 text-white dark:bg-blue-100 dark:text-blue-600";
   var colors = ["#5276d8", "#f2c14e", "#73bf69", "#e4576b", "#69bde7", "#8b5cf6", "#14b8a6", "#f97316", "#ec4899", "#64748b"];
-  var state = { visible: false, loaded: false, data: null, domain: null, view: null, hover: null, selectedServerId: "", peerTargetServerId: "", peerSaving: false };
+  var state = { visible: false, loaded: false, loading: false, data: null, domain: null, view: null, hover: null, selectedServerId: "", peerTargetServerId: "", peerSaving: false, refreshTimer: 0, peerTimer: 0, peerWaitUntil: 0 };
   var panel;
   var canvas;
   var ctx;
@@ -48,7 +48,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       ".vpsnw-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.22)}" +
       ".vpsnw-title{font-weight:800;font-size:14px}.vpsnw-sub{color:#64748b;font-size:12px}.dark .vpsnw-sub{color:#94a3b8}" +
       ".vpsnw-head-side{display:flex;flex-direction:column;align-items:flex-end;gap:7px}.vpsnw-server-tabs{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.vpsnw-server-btn{border:1px solid rgba(148,163,184,.35);border-radius:999px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 10px;white-space:nowrap}.vpsnw-server-btn.active{border-color:#2563eb;background:#2563eb;color:#fff}.dark .vpsnw-server-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-server-btn.active{background:#dbeafe;border-color:#dbeafe;color:#1d4ed8}" +
-      ".vpsnw-peer-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;padding:8px 14px 0;font-size:12px;color:#64748b}.dark .vpsnw-peer-row{color:#94a3b8}.vpsnw-peer-tabs{display:flex;flex-wrap:wrap;gap:6px}.vpsnw-peer-btn{border:1px solid rgba(148,163,184,.35);border-radius:7px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 9px;white-space:nowrap}.vpsnw-peer-btn.active{border-color:#0f172a;background:#0f172a;color:#fff}.vpsnw-peer-btn:disabled{cursor:not-allowed;opacity:.58}.dark .vpsnw-peer-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-peer-btn.active{background:#f8fafc;border-color:#f8fafc;color:#0f172a}" +
+      ".vpsnw-peer-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:6px;padding:8px 14px 0;font-size:12px;color:#64748b}.dark .vpsnw-peer-row{color:#94a3b8}.vpsnw-peer-tabs{display:flex;flex-wrap:wrap;gap:6px}.vpsnw-peer-note{min-width:48px;color:#2563eb}.dark .vpsnw-peer-note{color:#93c5fd}.vpsnw-peer-btn{border:1px solid rgba(148,163,184,.35);border-radius:7px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 9px;white-space:nowrap}.vpsnw-peer-btn.active{border-color:#0f172a;background:#0f172a;color:#fff}.vpsnw-peer-btn:disabled{cursor:not-allowed;opacity:.58}.dark .vpsnw-peer-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-peer-btn.active{background:#f8fafc;border-color:#f8fafc;color:#0f172a}" +
       ".vpsnw-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 18px;padding:10px 14px 2px;font-size:13px}.vpsnw-legend span{display:inline-flex;align-items:center;gap:6px}.vpsnw-dot{width:10px;height:10px;border-radius:50%;display:inline-block}" +
       ".vpsnw-chart{position:relative;height:360px;padding:6px 14px 14px}.vpsnw-chart canvas{width:100%;height:100%;display:block}" +
       ".vpsnw-tip{display:none;position:absolute;z-index:20;min-width:160px;max-width:260px;padding:10px 12px;border:1px solid rgba(148,163,184,.35);border-radius:8px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.2);font-size:13px;color:#111827;pointer-events:none}.dark .vpsnw-tip{background:rgba(15,15,15,.96);color:#f8fafc}" +
@@ -89,26 +89,29 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
   }
 
   function createPanel(host) {
-    if (panel) return panel;
     injectStyle();
-    panel = document.createElement("section");
-    panel.id = "vps-netwatch-latency-panel";
-    panel.hidden = true;
-    panel.innerHTML =
-      '<div class="vpsnw-head"><div><div class="vpsnw-title">延迟</div><div class="vpsnw-sub">先选 VPS，再看这台 VPS 到各目标的 ping；滚轮缩放时间，双击恢复</div></div><div class="vpsnw-head-side"><div class="vpsnw-server-tabs" id="vpsnw-server-tabs"></div><div class="vpsnw-sub" id="vpsnw-range">加载中</div></div></div>' +
-      '<div class="vpsnw-peer-row"><span>互 ping 目标</span><div class="vpsnw-peer-tabs" id="vpsnw-peer-tabs"></div></div>' +
-      '<div class="vpsnw-empty" id="vpsnw-empty">暂无延迟数据。默认只显示上海电信、上海联通；需要互 ping 时在上面选择一台目标 VPS，并等待一次采集。</div>' +
-      '<div class="vpsnw-legend" id="vpsnw-legend"></div>' +
-      '<div class="vpsnw-chart"><canvas id="vpsnw-canvas"></canvas><div class="vpsnw-tip" id="vpsnw-tip"></div></div>';
-    host.insertAdjacentElement("afterend", panel);
-    canvas = panel.querySelector("#vpsnw-canvas");
-    ctx = canvas.getContext("2d");
-    tooltip = panel.querySelector("#vpsnw-tip");
-    canvas.addEventListener("wheel", onWheel, { passive: false });
-    canvas.addEventListener("mousemove", onMove);
-    canvas.addEventListener("mouseleave", function () { state.hover = null; tooltip.style.display = "none"; draw(); });
-    canvas.addEventListener("dblclick", function () { if (state.domain) { state.view = { start: state.domain.start, end: state.domain.end }; draw(); } });
-    window.addEventListener("resize", draw);
+    if (!panel) {
+      panel = document.createElement("section");
+      panel.id = "vps-netwatch-latency-panel";
+      panel.hidden = true;
+      panel.innerHTML =
+        '<div class="vpsnw-head"><div><div class="vpsnw-title">延迟</div></div><div class="vpsnw-head-side"><div class="vpsnw-server-tabs" id="vpsnw-server-tabs"></div><div class="vpsnw-sub" id="vpsnw-range">加载中</div></div></div>' +
+        '<div class="vpsnw-peer-row"><span>互 ping 目标</span><div class="vpsnw-peer-tabs" id="vpsnw-peer-tabs"></div><span class="vpsnw-peer-note" id="vpsnw-peer-note"></span></div>' +
+        '<div class="vpsnw-empty" id="vpsnw-empty">暂无延迟数据</div>' +
+        '<div class="vpsnw-legend" id="vpsnw-legend"></div>' +
+        '<div class="vpsnw-chart"><canvas id="vpsnw-canvas"></canvas><div class="vpsnw-tip" id="vpsnw-tip"></div></div>';
+      canvas = panel.querySelector("#vpsnw-canvas");
+      ctx = canvas.getContext("2d");
+      tooltip = panel.querySelector("#vpsnw-tip");
+      canvas.addEventListener("wheel", onWheel, { passive: false });
+      canvas.addEventListener("mousemove", onMove);
+      canvas.addEventListener("mouseleave", function () { state.hover = null; tooltip.style.display = "none"; draw(); });
+      canvas.addEventListener("dblclick", function () { if (state.domain) { state.view = { start: state.domain.start, end: state.domain.end }; draw(); } });
+      window.addEventListener("resize", draw);
+    }
+    if (!panel.isConnected || panel.previousElementSibling !== host) {
+      host.insertAdjacentElement("afterend", panel);
+    }
     return panel;
   }
 
@@ -160,6 +163,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
         state.selectedServerId = id;
         state.hover = null;
         try { window.localStorage.setItem("vpsnw-selected-server", id); } catch (_) {}
+        if (state.peerTargetServerId && state.peerTargetServerId !== id) startPeerWait();
         draw();
       };
       box.appendChild(btn);
@@ -190,10 +194,11 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     addButton("关闭", "0", !state.peerTargetServerId, false, "默认只看上海电信和上海联通");
     servers.forEach(function (server) {
       var id = String(server.id);
-      if (id === String(state.selectedServerId)) return;
       var label = server.name || ("VPS " + id);
-      var disabled = !server.ip;
-      addButton(label, id, id === String(state.peerTargetServerId), disabled, disabled ? "这台 VPS 还没有上报公网 IP" : "让当前 VPS ping " + label);
+      var sameAsSource = id === String(state.selectedServerId);
+      var disabled = !server.ip || sameAsSource;
+      var title = sameAsSource ? "源 VPS 和目标 VPS 不能相同" : (disabled ? "这台 VPS 还没有上报公网 IP" : "让当前 VPS ping " + label);
+      addButton(label, id, id === String(state.peerTargetServerId), disabled, title);
     });
   }
 
@@ -215,10 +220,16 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       if (!body.success) throw new Error(body.error || "设置失败");
       state.peerTargetServerId = body.data && body.data.enabled ? String(body.data.target_server_id || "") : "";
       state.loaded = false;
-      await load();
+      if (state.peerTargetServerId) {
+        startPeerWait();
+      } else {
+        stopPeerWait();
+      }
+      setEmptyText(state.peerTargetServerId ? "采集中" : "暂无延迟数据");
+      await load({ resetView: false });
     } catch (err) {
+      setEmptyText(err.message || String(err));
       panel.querySelector("#vpsnw-empty").style.display = "block";
-      panel.querySelector("#vpsnw-empty").textContent = err.message || String(err);
     } finally {
       state.peerSaving = false;
       renderPeerTargets();
@@ -261,11 +272,43 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     });
   }
 
-  function updateDomain() {
+  function setEmptyText(text) {
+    var empty = panel && panel.querySelector("#vpsnw-empty");
+    if (empty) empty.textContent = text || "暂无延迟数据";
+  }
+
+  function hasActivePeerSeries(series) {
+    if (!state.peerTargetServerId || String(state.peerTargetServerId) === String(state.selectedServerId)) return false;
+    return series.some(function (item) { return item.is_peer && String(item.peer_server_id) === String(state.peerTargetServerId) && item.points.length; });
+  }
+
+  function updatePeerNote(series) {
+    var note = panel && panel.querySelector("#vpsnw-peer-note");
+    if (!note) return;
+    note.textContent = "";
+    if (!state.peerTargetServerId) return;
+    if (String(state.peerTargetServerId) === String(state.selectedServerId)) {
+      note.textContent = "请选择其它目标";
+      stopPeerWait();
+      return;
+    }
+    if (hasActivePeerSeries(series)) {
+      stopPeerWait();
+      return;
+    }
+    note.textContent = state.peerWaitUntil && Date.now() <= state.peerWaitUntil ? "采集中" : "暂无数据";
+  }
+
+  function updateDomain(resetView) {
     var end = (state.data && state.data.generated_at) || Date.now();
     var start = end - 86400000;
+    var oldView = state.view;
     state.domain = { start: start, end: end };
-    state.view = { start: start, end: end };
+    if (resetView || !oldView) {
+      state.view = { start: start, end: end };
+    } else {
+      clampView(oldView.start, oldView.end);
+    }
   }
 
   function clampView(start, end) {
@@ -280,19 +323,26 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     state.view = { start: Math.max(state.domain.start, start), end: Math.min(state.domain.end, end) };
   }
 
-  async function load() {
+  async function load(options) {
+    options = options || {};
+    if (state.loading) return;
+    state.loading = true;
     var headers = {};
-    var token = getToken();
-    if (token) headers.Authorization = "Bearer " + token;
-    var res = await fetch("/api/v1/netwatch/latency?period=1d", { headers: headers, credentials: "same-origin" });
-    var body = await res.json();
-    if (!body.success) throw new Error(body.error || "请求失败");
-    state.data = body.data;
-    state.loaded = true;
-    syncPeerState();
-    ensureSelectedServer();
-    updateDomain();
-    draw();
+    try {
+      var token = getToken();
+      if (token) headers.Authorization = "Bearer " + token;
+      var res = await fetch("/api/v1/netwatch/latency?period=1d", { headers: headers, credentials: "same-origin" });
+      var body = await res.json();
+      if (!body.success) throw new Error(body.error || "请求失败");
+      state.data = body.data;
+      state.loaded = true;
+      syncPeerState();
+      ensureSelectedServer();
+      updateDomain(options.resetView !== false);
+      draw();
+    } finally {
+      state.loading = false;
+    }
   }
 
   function draw() {
@@ -300,6 +350,8 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     renderServerTabs();
     renderPeerTargets();
     var series = aggregate();
+    updatePeerNote(series);
+    if (!series.length) setEmptyText(state.peerTargetServerId && state.peerTargetServerId !== state.selectedServerId && state.peerWaitUntil && Date.now() <= state.peerWaitUntil ? "采集中" : "暂无延迟数据");
     panel.querySelector("#vpsnw-empty").style.display = series.length ? "none" : "block";
     panel.querySelector(".vpsnw-chart").style.display = series.length ? "block" : "none";
     renderLegend(series);
@@ -419,46 +471,88 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     state.visible = !state.visible;
     panel.hidden = !state.visible;
     btn.className = buttonClass + (state.visible ? " " + activeClass : "");
+    if (state.visible) {
+      startRefresh();
+    } else {
+      stopRefresh();
+      stopPeerWait();
+    }
     if (state.visible && !state.loaded) {
-      load().catch(function (err) {
+      load({ resetView: true }).catch(function (err) {
+        setEmptyText(err.message || String(err));
         panel.querySelector("#vpsnw-empty").style.display = "block";
-        panel.querySelector("#vpsnw-empty").textContent = err.message || String(err);
       });
     } else if (state.visible) {
       draw();
     }
   }
 
-  function addButton() {
-    if (document.querySelector("[" + marker + "]")) return true;
+  function startRefresh() {
+    if (state.refreshTimer) return;
+    state.refreshTimer = window.setInterval(function () {
+      if (state.visible) load({ resetView: false }).catch(function () {});
+    }, 30000);
+  }
+
+  function stopRefresh() {
+    if (state.refreshTimer) window.clearInterval(state.refreshTimer);
+    state.refreshTimer = 0;
+  }
+
+  function startPeerWait() {
+    state.peerWaitUntil = Date.now() + 120000;
+    if (state.peerTimer) return;
+    state.peerTimer = window.setInterval(function () {
+      if (!state.visible || !state.peerWaitUntil || Date.now() > state.peerWaitUntil) {
+        stopPeerWait();
+        draw();
+        return;
+      }
+      load({ resetView: false }).catch(function () {});
+    }, 10000);
+  }
+
+  function stopPeerWait() {
+    if (state.peerTimer) window.clearInterval(state.peerTimer);
+    state.peerTimer = 0;
+    state.peerWaitUntil = 0;
+  }
+
+  function ensureButton() {
     var controlsRow = document.querySelector(".server-overview-controls");
     var controls = document.querySelector(".server-overview-controls section");
     if (!controlsRow || !controls) return false;
-    var buttons = controls.querySelectorAll(":scope > button");
-    if (buttons.length < 3) return false;
 
-    var btn = document.createElement("button");
-    btn.setAttribute(marker, "1");
-    btn.className = buttonClass;
-    btn.type = "button";
-    btn.title = "延迟";
-    btn.setAttribute("aria-label", "延迟");
-    btn.innerHTML = '<svg viewBox="0 0 20 20" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M3 12.6a1 1 0 0 1 1-1h1.9l2.2-5.7a1 1 0 0 1 1.86 0l2.63 6.84 1.55-3.1a1 1 0 0 1 .9-.55H17a1 1 0 1 1 0 2h-1.34l-2.36 4.72a1 1 0 0 1-1.83-.08L9.03 9.37l-1.5 3.88a1 1 0 0 1-.93.64H4a1 1 0 0 1-1-1.29Z"/></svg>';
+    var btn = document.querySelector("[" + marker + "]");
+    if (btn && !controls.contains(btn)) btn.remove();
+    btn = controls.querySelector("[" + marker + "]");
+
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.setAttribute(marker, "1");
+      btn.type = "button";
+      btn.title = "延迟";
+      btn.setAttribute("aria-label", "延迟");
+      btn.innerHTML = '<svg viewBox="0 0 20 20" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M3 12.6a1 1 0 0 1 1-1h1.9l2.2-5.7a1 1 0 0 1 1.86 0l2.63 6.84 1.55-3.1a1 1 0 0 1 .9-.55H17a1 1 0 1 1 0 2h-1.34l-2.36 4.72a1 1 0 0 1-1.83-.08L9.03 9.37l-1.5 3.88a1 1 0 0 1-.93.64H4a1 1 0 0 1-1-1.29Z"/></svg>';
+    }
+    btn.className = buttonClass + (state.visible ? " " + activeClass : "");
     btn.onclick = function () { toggle(btn, controlsRow); };
-    buttons[2].after(btn);
+
+    var buttons = Array.prototype.filter.call(controls.querySelectorAll(":scope > button"), function (item) {
+      return !item.hasAttribute(marker);
+    });
+    if (buttons.length < 3) return !!btn.isConnected;
+    if (btn.parentNode !== controls || btn.previousElementSibling !== buttons[2]) {
+      buttons[2].after(btn);
+    }
     return true;
   }
 
-  if (!addButton()) {
-    var tries = 0;
-    var timer = window.setInterval(function () {
-      tries += 1;
-      if (addButton() || tries > 80) window.clearInterval(timer);
-    }, 250);
-    var observer = new MutationObserver(addButton);
-    observer.observe(document.documentElement, { childList: true, subtree: true });
-    window.setTimeout(function () { observer.disconnect(); }, 20000);
-  }
+  ensureButton();
+  window.setInterval(ensureButton, 1000);
+  var observer = new MutationObserver(ensureButton);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener("visibilitychange", ensureButton);
 })();
 </script>`
 
