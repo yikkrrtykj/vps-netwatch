@@ -534,8 +534,8 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       btn.setAttribute("aria-label", "延迟");
       btn.innerHTML = '<svg viewBox="0 0 20 20" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M3 12.6a1 1 0 0 1 1-1h1.9l2.2-5.7a1 1 0 0 1 1.86 0l2.63 6.84 1.55-3.1a1 1 0 0 1 .9-.55H17a1 1 0 1 1 0 2h-1.34l-2.36 4.72a1 1 0 0 1-1.83-.08L9.03 9.37l-1.5 3.88a1 1 0 0 1-.93.64H4a1 1 0 0 1-1-1.29Z"/></svg>';
     }
-    btn.className = buttonClass + (state.visible ? " " + activeClass : "");
-    btn.onclick = function () { toggle(btn, controlsRow); };
+    btn.className = buttonClass;
+    btn.onclick = function () { window.location.href = "/dashboard/netwatch/latency"; };
 
     var buttons = Array.prototype.filter.call(controls.querySelectorAll(":scope > button"), function (item) {
       return !item.hasAttribute(marker);
@@ -562,18 +562,19 @@ const netwatchLatencyHTMLV2 = `<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>延迟 - vps-netwatch</title>
 <style>
-:root { color-scheme: light; --bg:#f7f8fb; --panel:#fff; --line:#d9dee8; --text:#111827; --muted:#687386; --brand:#2563eb; --brand-soft:#eaf1ff; --shadow:0 1px 3px rgba(15,23,42,.08),0 10px 24px rgba(15,23,42,.05); }
+:root { color-scheme: light; --bg:#f7f8fb; --panel:#fff; --line:#d9dee8; --text:#111827; --muted:#687386; --brand:#2563eb; --brand-soft:#eaf1ff; --shadow:0 1px 2px rgba(15,23,42,.06),0 8px 20px rgba(15,23,42,.04); }
 * { box-sizing: border-box; }
 html, body { min-height: 100%; }
 body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,"Noto Sans SC",sans-serif; background:var(--bg); color:var(--text); }
 button { font:inherit; }
-.page { width:min(1200px, calc(100vw - 28px)); margin:20px auto; }
+.page { width:min(1220px, calc(100vw - 8px)); margin:10px auto; }
 .panel { background:var(--panel); border:1px solid var(--line); border-radius:8px; box-shadow:var(--shadow); overflow:hidden; }
 .tabs { display:flex; align-items:center; gap:6px; padding:14px 18px 0; border-bottom:1px solid var(--line); overflow:auto; }
 .tab { display:inline-flex; align-items:center; gap:7px; min-height:42px; padding:0 10px; color:#263244; text-decoration:none; white-space:nowrap; border-bottom:2px solid transparent; font-size:14px; }
 .tab svg { width:17px; height:17px; color:#6b7280; }
 .tab.active { color:var(--brand); border-bottom-color:var(--brand); font-weight:700; }
 .tab.active svg { color:var(--brand); }
+.tab.more { margin-left:auto; }
 .toolbar { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 10px 4px; }
 .icon-btn, .seg, .filter { display:inline-flex; align-items:center; min-height:36px; border:1px solid var(--line); background:#fff; border-radius:7px; box-shadow:0 2px 8px rgba(15,23,42,.06); }
 .icon-btn { width:36px; justify-content:center; color:#334155; cursor:pointer; }
@@ -595,7 +596,7 @@ button { font:inherit; }
 .legend { display:flex; flex-wrap:wrap; justify-content:center; gap:10px 18px; min-height:38px; padding:10px 18px 4px; font-size:13px; color:#1f2937; }
 .legend-item { display:inline-flex; align-items:center; gap:6px; white-space:nowrap; }
 .dot { width:11px; height:11px; border-radius:50%; display:inline-block; }
-.chart-wrap { position:relative; height:455px; padding:6px 14px 14px; }
+.chart-wrap { position:relative; height:480px; padding:6px 18px 14px; }
 canvas { display:block; width:100%; height:100%; }
 .tooltip { position:absolute; display:none; min-width:160px; max-width:260px; padding:10px 12px; border:1px solid #d7deea; border-radius:6px; background:rgba(255,255,255,.96); box-shadow:0 8px 24px rgba(15,23,42,.18); pointer-events:none; font-size:13px; color:#1f2937; z-index:4; }
 .tooltip-time { margin-bottom:6px; color:#334155; }
@@ -604,7 +605,7 @@ canvas { display:block; width:100%; height:100%; }
 .empty, .error { display:none; margin:12px 16px; padding:14px; border-radius:8px; font-size:14px; }
 .empty { color:#64748b; background:#f8fafc; border:1px dashed #cbd5e1; }
 .error { color:#991b1b; background:#fff1f2; border:1px solid #fecdd3; }
-@media (max-width: 780px) { .page { width:calc(100vw - 16px); margin:8px auto; } .tabs { padding-left:10px; } .toolbar { align-items:stretch; } .filter { max-width:100%; overflow:auto; } .date-pill { flex:1; justify-content:center; } .chart-wrap { height:390px; padding-left:8px; padding-right:8px; } }
+@media (max-width: 780px) { .page { width:calc(100vw - 16px); margin:8px auto; } .tabs { padding-left:10px; } .tab.more { margin-left:0; } .toolbar { align-items:stretch; } .filter { max-width:100%; overflow:auto; } .date-pill { flex:1; justify-content:center; } .chart-wrap { height:390px; padding-left:8px; padding-right:8px; } }
 </style>
 </head>
 <body>
@@ -616,6 +617,11 @@ canvas { display:block; width:100%; height:100%; }
       <span class="tab"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 3a7 7 0 1 0 6.64 4.78l-1.67.9a5.1 5.1 0 1 1-3.84-3.65L10 9.7l1.82.44 1.5-6.16A6.9 6.9 0 0 0 10 3Z"/></svg>速率</span>
       <span class="tab"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 3h12a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Zm2 4v6h2V7H6Zm3 0v6h2V7H9Zm3 0v6h2V7h-2Z"/></svg>IP 质量</span>
       <a class="tab active" href="/dashboard/netwatch/latency"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 12.6a1 1 0 0 1 1-1h1.9l2.2-5.7a1 1 0 0 1 1.86 0l2.63 6.84 1.55-3.1a1 1 0 0 1 .9-.55H17a1 1 0 1 1 0 2h-1.34l-2.36 4.72a1 1 0 0 1-1.83-.08L9.03 9.37l-1.5 3.88a1 1 0 0 1-.93.64H4a1 1 0 0 1-1-1.29Z"/></svg>延迟</a>
+      <span class="tab"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M10 2a8 8 0 0 1 7.93 7H16a6 6 0 1 0-2.02 4.49l-1.36-1.36A4 4 0 1 1 14 9h-2.4l3.2 3.2L18 9h-2.06A8 8 0 1 1 10 2Z"/></svg>Ping</span>
+      <span class="tab"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 4a3 3 0 1 1 2.83 4H7v3h6v-1.17a3 3 0 1 1 2 0V12a1 1 0 0 1-1 1H7v1.17a3 3 0 1 1-2 0V7.83A3 3 0 0 1 5 4Z"/></svg>路由</span>
+      <span class="tab"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 0 1 2-2h2v16H6a2 2 0 0 1-2-2V4Zm8-2h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-2V2Z"/></svg>BGP</span>
+      <span class="tab"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M3 10h3l2-6 4 12 2-6h3v2h-1.56l-2.49 7.48a1 1 0 0 1-1.9 0L8.02 10.4l-.07.2A1 1 0 0 1 7 11.3H3V10Z"/></svg>状态</span>
+      <span class="tab more">更多 <svg viewBox="0 0 20 20" fill="currentColor"><path d="M7.2 4.2a1 1 0 0 1 1.4 0l5.1 5.1a1 1 0 0 1 0 1.4l-5.1 5.1a1 1 0 1 1-1.4-1.4l4.4-4.4-4.4-4.4a1 1 0 0 1 0-1.4Z"/></svg></span>
     </nav>
 
     <div class="toolbar">
@@ -625,7 +631,7 @@ canvas { display:block; width:100%; height:100%; }
 
       <div class="seg"><span class="seg-label">协议</span><span class="protocol-name" id="leftProtocol">ICMP</span><button class="switch" id="protocolSwitch" title="切换 ICMP/TCP"></button><span class="protocol-name">TCP</span></div>
       <div class="filter"><button class="clear" id="carrierAll">全选</button><div id="carrierFilters"></div></div>
-      <div class="filter"><button class="clear" id="cityAll">全选</button><div id="cityFilters"></div></div>
+      <div class="filter"><button class="clear" id="cityAll">清空</button><div id="cityFilters"></div></div>
     </div>
 
     <div class="error" id="errorBox"></div>
@@ -639,10 +645,10 @@ canvas { display:block; width:100%; height:100%; }
 </main>
 <script>
 (function () {
-  var colors = ["#5276d8", "#f2c14e", "#73bf69", "#e4576b", "#69bde7", "#8b5cf6"];
+  var colors = ["#5276d8", "#f2c14e", "#ef5b5b", "#43a772", "#8b5fb7", "#e16ac5", "#69bde7", "#64748b"];
   var knownCities = ["上海", "北京", "广州", "深圳", "香港", "东京", "新加坡", "洛杉矶"];
   var periodMs = { "1d": 86400000, "7d": 604800000, "30d": 2592000000 };
-  var state = { period: "1d", protocol: "all", carriers: new Set(["电信", "联通"]), cities: new Set(["上海"]), data: null, domain: null, view: null, hover: null };
+  var state = { period: "1d", protocol: "ICMP", carriers: new Set(["电信", "移动", "联通"]), cities: new Set(["上海", "北京", "广州"]), data: null, domain: null, view: null, hover: null };
   var canvas = document.getElementById("chart");
   var wrap = document.getElementById("chartWrap");
   var ctx = canvas.getContext("2d");
@@ -797,9 +803,7 @@ canvas { display:block; width:100%; height:100%; }
   }
 
   function updateRangeLabel() {
-    var label = fmtDate(state.view.start) + " - " + fmtDate(state.view.end);
-    if (fmtDate(state.view.start) === fmtDate(state.view.end)) label = fmtDate(state.view.start);
-    document.getElementById("rangeLabel").textContent = label;
+    document.getElementById("rangeLabel").textContent = fmtDate(state.view.start) + " - " + fmtDate(state.view.end);
   }
 
   function visiblePoints(series) {
@@ -975,7 +979,7 @@ canvas { display:block; width:100%; height:100%; }
     renderAll();
   };
   document.getElementById("cityAll").onclick = function () {
-    allServiceOptions("city").forEach(function (item) { state.cities.add(item); });
+    state.cities.clear();
     renderAll();
   };
   document.getElementById("prevBtn").onclick = function () {
