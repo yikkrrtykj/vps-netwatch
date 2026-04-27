@@ -118,6 +118,9 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 			continue
 		}
 		peerServerID := netwatchPeerServerID(service, serverMap)
+		if !netwatchShouldExposeLatencyService(service, peerServerID) {
+			continue
+		}
 		serviceName := netwatchDisplayServiceName(service, serverMap)
 
 		serviceInfo := netwatchLatencyService{
@@ -164,6 +167,19 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 	}
 
 	return resp, nil
+}
+
+func netwatchShouldExposeLatencyService(service *model.Service, peerServerID uint64) bool {
+	if service == nil {
+		return false
+	}
+	if service.Cover == model.ServiceCoverIgnoreAll && len(service.SkipServers) == 0 {
+		return false
+	}
+	if peerServerID > 0 && service.Cover != model.ServiceCoverAll {
+		return false
+	}
+	return true
 }
 
 func updateNetwatchPeerTarget(c *gin.Context) (*netwatchPeerState, error) {
