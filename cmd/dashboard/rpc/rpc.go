@@ -93,9 +93,7 @@ func DispatchTask(serviceSentinelDispatchBus <-chan *model.Service) {
 					continue
 				}
 
-				if canSendTaskToServer(task, server) {
-					server.TaskStream.Send(task.PB())
-				}
+				sendTaskToServer(task, server)
 			}
 		case model.ServiceCoverAll:
 			for id, server := range singleton.ServerShared.Range {
@@ -103,11 +101,36 @@ func DispatchTask(serviceSentinelDispatchBus <-chan *model.Service) {
 					continue
 				}
 
-				if canSendTaskToServer(task, server) {
-					server.TaskStream.Send(task.PB())
-				}
+				sendTaskToServer(task, server)
 			}
 		}
+	}
+}
+
+func sendTaskToServer(task *model.Service, server *model.Server) {
+	if !canSendTaskToServer(task, server) {
+		return
+	}
+
+	stream := server.TaskStream
+	if stream == nil {
+		return
+	}
+
+	done := make(chan error, 1)
+	go func() {
+		done <- stream.Send(task.PB())
+	}()
+
+	select {
+	case err := <-done:
+		if err != nil {
+			log.Printf("NEZHA>> Send service task %d to server %d failed: %v", task.ID, server.ID, err)
+		}
+	case <-stream.Context().Done():
+		log.Printf("NEZHA>> Send service task %d to server %d canceled: %v", task.ID, server.ID, stream.Context().Err())
+	case <-time.After(3 * time.Second):
+		log.Printf("NEZHA>> Send service task %d to server %d timed out", task.ID, server.ID)
 	}
 }
 

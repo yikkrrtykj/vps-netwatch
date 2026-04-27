@@ -3,6 +3,7 @@ package model
 import (
 	"log"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/goccy/go-json"
@@ -58,17 +59,32 @@ func (s *Server) CopyFromRunningServer(old *Server) {
 }
 
 func (s *Server) AfterFind(tx *gorm.DB) error {
-	if s.DDNSProfilesRaw != "" {
+	ddnsProfilesRaw := strings.TrimSpace(s.DDNSProfilesRaw)
+	if ddnsProfilesRaw == "" || ddnsProfilesRaw == "null" {
+		s.DDNSProfiles = []uint64{}
+		s.DDNSProfilesRaw = "[]"
+	} else {
 		if err := json.Unmarshal([]byte(s.DDNSProfilesRaw), &s.DDNSProfiles); err != nil {
 			log.Println("NEZHA>> Server.AfterFind:", err)
 			return nil
 		}
 	}
-	if s.OverrideDDNSDomainsRaw != "" {
+	if s.DDNSProfiles == nil {
+		s.DDNSProfiles = []uint64{}
+	}
+
+	overrideDDNSDomainsRaw := strings.TrimSpace(s.OverrideDDNSDomainsRaw)
+	if overrideDDNSDomainsRaw == "" || overrideDDNSDomainsRaw == "null" {
+		s.OverrideDDNSDomains = map[uint64][]string{}
+		s.OverrideDDNSDomainsRaw = "{}"
+	} else {
 		if err := json.Unmarshal([]byte(s.OverrideDDNSDomainsRaw), &s.OverrideDDNSDomains); err != nil {
 			log.Println("NEZHA>> Server.AfterFind:", err)
 			return nil
 		}
+	}
+	if s.OverrideDDNSDomains == nil {
+		s.OverrideDDNSDomains = map[uint64][]string{}
 	}
 	return nil
 }

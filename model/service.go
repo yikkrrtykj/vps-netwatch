@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/goccy/go-json"
 	"github.com/robfig/cron/v3"
@@ -92,6 +93,16 @@ func (m *Service) CronSpec() string {
 }
 
 func (m *Service) BeforeSave(tx *gorm.DB) error {
+	if m.SkipServers == nil {
+		m.SkipServers = map[uint64]bool{}
+	}
+	if m.FailTriggerTasks == nil {
+		m.FailTriggerTasks = []uint64{}
+	}
+	if m.RecoverTriggerTasks == nil {
+		m.RecoverTriggerTasks = []uint64{}
+	}
+
 	if data, err := json.Marshal(m.SkipServers); err != nil {
 		return err
 	} else {
@@ -112,17 +123,35 @@ func (m *Service) BeforeSave(tx *gorm.DB) error {
 
 func (m *Service) AfterFind(tx *gorm.DB) error {
 	m.SkipServers = make(map[uint64]bool)
-	if err := json.Unmarshal([]byte(m.SkipServersRaw), &m.SkipServers); err != nil {
+	skipServersRaw := strings.TrimSpace(m.SkipServersRaw)
+	if skipServersRaw == "" || skipServersRaw == "null" {
+		m.SkipServersRaw = "{}"
+	} else if err := json.Unmarshal([]byte(m.SkipServersRaw), &m.SkipServers); err != nil {
 		log.Println("NEZHA>> Service.AfterFind:", err)
 		return nil
 	}
 
 	// 加载触发任务列表
-	if err := json.Unmarshal([]byte(m.FailTriggerTasksRaw), &m.FailTriggerTasks); err != nil {
+	failTriggerTasksRaw := strings.TrimSpace(m.FailTriggerTasksRaw)
+	if failTriggerTasksRaw == "" || failTriggerTasksRaw == "null" {
+		m.FailTriggerTasks = []uint64{}
+		m.FailTriggerTasksRaw = "[]"
+	} else if err := json.Unmarshal([]byte(m.FailTriggerTasksRaw), &m.FailTriggerTasks); err != nil {
 		return err
 	}
-	if err := json.Unmarshal([]byte(m.RecoverTriggerTasksRaw), &m.RecoverTriggerTasks); err != nil {
+	if m.FailTriggerTasks == nil {
+		m.FailTriggerTasks = []uint64{}
+	}
+
+	recoverTriggerTasksRaw := strings.TrimSpace(m.RecoverTriggerTasksRaw)
+	if recoverTriggerTasksRaw == "" || recoverTriggerTasksRaw == "null" {
+		m.RecoverTriggerTasks = []uint64{}
+		m.RecoverTriggerTasksRaw = "[]"
+	} else if err := json.Unmarshal([]byte(m.RecoverTriggerTasksRaw), &m.RecoverTriggerTasks); err != nil {
 		return err
+	}
+	if m.RecoverTriggerTasks == nil {
+		m.RecoverTriggerTasks = []uint64{}
 	}
 
 	return nil

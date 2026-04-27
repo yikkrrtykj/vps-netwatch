@@ -80,7 +80,13 @@ func updateServer(c *gin.Context) (any, error) {
 	s.HideForGuest = sf.HideForGuest
 	s.EnableDDNS = sf.EnableDDNS
 	s.DDNSProfiles = sf.DDNSProfiles
+	if s.DDNSProfiles == nil {
+		s.DDNSProfiles = []uint64{}
+	}
 	s.OverrideDDNSDomains = sf.OverrideDDNSDomains
+	if s.OverrideDDNSDomains == nil {
+		s.OverrideDDNSDomains = map[uint64][]string{}
+	}
 
 	ddnsProfilesRaw, err := json.Marshal(s.DDNSProfiles)
 	if err != nil {
@@ -88,7 +94,7 @@ func updateServer(c *gin.Context) (any, error) {
 	}
 	s.DDNSProfilesRaw = string(ddnsProfilesRaw)
 
-	overrideDomainsRaw, err := json.Marshal(sf.OverrideDDNSDomains)
+	overrideDomainsRaw, err := json.Marshal(s.OverrideDDNSDomains)
 	if err != nil {
 		return nil, err
 	}
