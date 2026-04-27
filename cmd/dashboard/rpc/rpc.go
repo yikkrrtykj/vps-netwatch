@@ -126,6 +126,8 @@ func sendTaskToServer(task *model.Service, server *model.Server) {
 	case err := <-done:
 		if err != nil {
 			log.Printf("NEZHA>> Send service task %d to server %d failed: %v", task.ID, server.ID, err)
+		} else if singleton.Conf.Debug {
+			log.Printf("NEZHA>> Sent service task %d to server %d", task.ID, server.ID)
 		}
 	case <-stream.Context().Done():
 		log.Printf("NEZHA>> Send service task %d to server %d canceled: %v", task.ID, server.ID, stream.Context().Err())

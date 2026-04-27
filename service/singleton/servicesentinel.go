@@ -196,6 +196,9 @@ func (ss *ServiceSentinel) loadServiceHistory() error {
 		task := service
 		// 通过cron定时将服务监控任务传递给任务调度管道
 		service.CronJobID, err = CronShared.AddFunc(task.CronSpec(), func() {
+			if Conf.Debug {
+				log.Printf("NEZHA>> Queue service task %d (%s)", task.ID, task.Name)
+			}
 			ss.dispatchBus <- task
 		})
 		if err != nil {
@@ -332,6 +335,9 @@ func (ss *ServiceSentinel) Update(m *model.Service) error {
 	var err error
 	// 写入新任务
 	m.CronJobID, err = CronShared.AddFunc(m.CronSpec(), func() {
+		if Conf.Debug {
+			log.Printf("NEZHA>> Queue service task %d (%s)", m.ID, m.Name)
+		}
 		ss.dispatchBus <- m
 	})
 	if err != nil {
@@ -484,6 +490,9 @@ func (ss *ServiceSentinel) worker() {
 		css = nil
 
 		mh := r.Data
+		if Conf.Debug {
+			log.Printf("NEZHA>> Service report task %d from server %d success=%v delay=%.2f", mh.GetId(), r.Reporter, mh.GetSuccessful(), mh.GetDelay())
+		}
 		if mh.Type == model.TaskTypeTCPPing || mh.Type == model.TaskTypeICMPPing {
 			// TCP/ICMP Ping 使用平均值计算后再写入
 			serviceTcpMap, ok := ss.serviceResponsePing[mh.GetId()]
