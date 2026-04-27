@@ -96,7 +96,7 @@ func DispatchTask(serviceSentinelDispatchBus <-chan *model.Service) {
 				sendTaskToServer(task, server)
 			}
 		case model.ServiceCoverAll:
-			for id, server := range singleton.ServerShared.Range {
+			for id, server := range singleton.ServerShared.GetList() {
 				if server == nil || server.TaskStream == nil || task.SkipServers[id] {
 					continue
 				}
