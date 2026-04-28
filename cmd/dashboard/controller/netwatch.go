@@ -17,6 +17,8 @@ import (
 
 type netwatchLatencyResponse struct {
 	Period      string                  `json:"period"`
+	Start       int64                   `json:"start"`
+	End         int64                   `json:"end"`
 	GeneratedAt int64                   `json:"generated_at"`
 	Servers     []netwatchLatencyServer `json:"servers"`
 	Services    []netwatchLatencyService `json:"services"`
@@ -87,9 +89,13 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 	if err != nil {
 		return nil, err
 	}
+	start, end, err := netwatchLatencyRange(c, period)
+	if err != nil {
+		return nil, err
+	}
 
 	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
-	if !isMember && period != tsdb.Period1Day {
+	if !isMember && (end.Sub(start) > 24*time.Hour+time.Minute || start.Before(time.Now().Add(-24*time.Hour-time.Minute))) {
 		return nil, singleton.Localizer.ErrorT("unauthorized: only 1d data available for guests")
 	}
 
@@ -97,6 +103,8 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 	visibleServers := make(map[uint64]*model.Server)
 	resp := &netwatchLatencyResponse{
 		Period:      periodKey,
+		Start:       start.UnixMilli(),
+		End:         end.UnixMilli(),
 		GeneratedAt: time.Now().UnixMilli(),
 		Servers:     make([]netwatchLatencyServer, 0, len(serverMap)),
 		Services:    make([]netwatchLatencyService, 0),
@@ -135,7 +143,7 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 		}
 		resp.Services = append(resp.Services, serviceInfo)
 
-		history, err := netwatchLoadServiceHistory(service, period)
+		history, err := netwatchLoadServiceHistoryRange(service, start, end)
 		if err != nil {
 			return nil, err
 		}
@@ -180,6 +188,65 @@ func netwatchShouldExposeLatencyService(service *model.Service, peerServerID uin
 		return false
 	}
 	return true
+}
+
+func netwatchLatencyRange(c *gin.Context, period tsdb.QueryPeriod) (time.Time, time.Time, error) {
+	now := time.Now()
+	dateText := strings.TrimSpace(c.Query("date"))
+	if dateText != "" {
+		start, err := time.ParseInLocation("2006-01-02", dateText, time.Local)
+		if err != nil {
+			return time.Time{}, time.Time{}, fmt.Errorf("invalid date: %s", dateText)
+		}
+		return start, start.Add(24 * time.Hour), nil
+	}
+
+	startText := strings.TrimSpace(c.Query("start"))
+	endText := strings.TrimSpace(c.Query("end"))
+	if startText == "" && endText == "" {
+		return now.Add(-period.Duration()), now, nil
+	}
+	if startText == "" || endText == "" {
+		return time.Time{}, time.Time{}, fmt.Errorf("start and end must be provided together")
+	}
+
+	start, err := netwatchParseRangeTime(startText)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid start: %s", startText)
+	}
+	end, err := netwatchParseRangeTime(endText)
+	if err != nil {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid end: %s", endText)
+	}
+	if !end.After(start) {
+		return time.Time{}, time.Time{}, fmt.Errorf("invalid time range")
+	}
+	if end.Sub(start) > 31*24*time.Hour {
+		return time.Time{}, time.Time{}, fmt.Errorf("time range cannot exceed 31 days")
+	}
+	return start, end, nil
+}
+
+func netwatchParseRangeTime(value string) (time.Time, error) {
+	if millis, err := strconv.ParseInt(value, 10, 64); err == nil {
+		if millis < 100000000000 {
+			return time.Unix(millis, 0), nil
+		}
+		return time.UnixMilli(millis), nil
+	}
+
+	layouts := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02 15:04:05",
+		"2006-01-02",
+	}
+	for _, layout := range layouts {
+		if parsed, err := time.ParseInLocation(layout, value, time.Local); err == nil {
+			return parsed, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unsupported time format")
 }
 
 func updateNetwatchPeerTarget(c *gin.Context) (*netwatchPeerState, error) {
@@ -263,7 +330,7 @@ func updateNetwatchPeerTarget(c *gin.Context) (*netwatchPeerState, error) {
 	}, nil
 }
 
-func netwatchLoadServiceHistory(service *model.Service, period tsdb.QueryPeriod) (*model.ServiceHistoryResponse, error) {
+func netwatchLoadServiceHistoryRange(service *model.Service, start, end time.Time) (*model.ServiceHistoryResponse, error) {
 	response := &model.ServiceHistoryResponse{
 		ServiceID:   service.ID,
 		ServiceName: service.Name,
@@ -271,10 +338,10 @@ func netwatchLoadServiceHistory(service *model.Service, period tsdb.QueryPeriod)
 	}
 
 	if !singleton.TSDBEnabled() {
-		return queryServiceHistoryFromDB(service.ID, period, response)
+		return queryServiceHistoryFromDBRange(service.ID, start, end, response)
 	}
 
-	result, err := singleton.TSDBShared.QueryServiceHistory(service.ID, period)
+	result, err := singleton.TSDBShared.QueryServiceHistoryRange(service.ID, start, end)
 	if err != nil {
 		return nil, err
 	}

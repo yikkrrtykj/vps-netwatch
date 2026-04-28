@@ -106,6 +106,22 @@ image: ghcr.io/nezhahq/nezha:latest
 
 原则是：VPS 监控、Web 终端、服务监控、延迟图这些成熟能力继续用哪吒；`vps-netwatch` 只补你需要的代理和游戏网络诊断。
 
+## 自定义延迟面板
+
+本仓库把自定义 Ping 延迟能力合并到哪吒现有延迟页面：
+
+```text
+http://主控VPS公网IP:8008/dashboard/netwatch/latency
+```
+
+当前能力：
+
+- 选择日期查看当天延迟历史。
+- 在 ICMP 和 TCP Ping 监控之间切换。
+- 勾选显示极值标签，默认关闭。
+- 勾选显示平均线，默认关闭。
+- 点击截图按钮导出当前图表 PNG。
+
 ## 同步上游
 
 本地仓库保留了 `upstream` remote：

@@ -580,6 +580,8 @@ button { font:inherit; }
 .icon-btn svg { width:16px; height:16px; }
 .date-pill { display:inline-flex; align-items:center; gap:9px; min-height:36px; padding:0 12px; border:1px solid var(--line); border-radius:7px; background:#fff; box-shadow:0 2px 8px rgba(15,23,42,.06); font-weight:700; white-space:nowrap; }
 .date-pill svg { width:16px; height:16px; color:#334155; }
+.date-input { border:0; outline:0; background:transparent; color:#111827; font:inherit; font-weight:700; min-width:136px; }
+.date-range-label { color:#64748b; font-size:12px; font-weight:500; }
 .seg { gap:8px; padding:5px 9px; }
 .seg-label, .filter-label { color:#64748b; font-size:13px; }
 .switch { position:relative; width:34px; height:20px; border:0; border-radius:999px; background:#e5e7eb; padding:0; cursor:pointer; }
@@ -620,12 +622,14 @@ canvas { display:block; width:100%; height:100%; }
 
     <div class="toolbar">
       <button class="icon-btn" id="prevBtn" title="上一段"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M12.8 4.2a1 1 0 0 1 0 1.4L8.4 10l4.4 4.4a1 1 0 1 1-1.4 1.4l-5.1-5.1a1 1 0 0 1 0-1.4l5.1-5.1a1 1 0 0 1 1.4 0Z"/></svg></button>
-      <div class="date-pill"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 2a1 1 0 0 1 1 1v1h6V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v9.5A2.5 2.5 0 0 1 15.5 18h-11A2.5 2.5 0 0 1 2 15.5V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Zm10 7H4v6.5c0 .28.22.5.5.5h11a.5.5 0 0 0 .5-.5V9Z"/></svg><span id="rangeLabel">加载中</span></div>
+      <label class="date-pill" title="选择日期"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M6 2a1 1 0 0 1 1 1v1h6V3a1 1 0 1 1 2 0v1h1a2 2 0 0 1 2 2v9.5A2.5 2.5 0 0 1 15.5 18h-11A2.5 2.5 0 0 1 2 15.5V6a2 2 0 0 1 2-2h1V3a1 1 0 0 1 1-1Zm10 7H4v6.5c0 .28.22.5.5.5h11a.5.5 0 0 0 .5-.5V9Z"/></svg><input class="date-input" id="dateInput" type="date"><span class="date-range-label" id="rangeLabel">加载中</span></label>
       <button class="icon-btn" id="nextBtn" title="下一段"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M7.2 15.8a1 1 0 0 1 0-1.4l4.4-4.4-4.4-4.4a1 1 0 0 1 1.4-1.4l5.1 5.1a1 1 0 0 1 0 1.4l-5.1 5.1a1 1 0 0 1-1.4 0Z"/></svg></button>
 
       <div class="seg"><span class="seg-label">协议</span><span class="protocol-name" id="leftProtocol">ICMP</span><button class="switch" id="protocolSwitch" title="切换 ICMP/TCP"></button><span class="protocol-name">TCP</span></div>
       <div class="filter"><button class="clear" id="carrierAll">全选</button><div id="carrierFilters"></div></div>
       <div class="filter"><button class="clear" id="cityAll">全选</button><div id="cityFilters"></div></div>
+      <div class="filter"><span class="filter-label">显示</span><button class="chip" id="extremeToggle"><span class="box"></span><span>极值</span></button><button class="chip" id="averageToggle"><span class="box"></span><span>平均线</span></button></div>
+      <button class="icon-btn" id="shotBtn" title="导出截图"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3h10a2 2 0 0 1 2 2v3h-2V5H5v3H3V5a2 2 0 0 1 2-2Zm10 9h2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3h2v3h10v-3Z"/><path d="M9 4h2v7.6l2.3-2.3 1.4 1.4-4.7 4.7-4.7-4.7 1.4-1.4L9 11.6V4Z"/></svg></button>
     </div>
 
     <div class="error" id="errorBox"></div>
@@ -642,7 +646,7 @@ canvas { display:block; width:100%; height:100%; }
   var colors = ["#5276d8", "#f2c14e", "#73bf69", "#e4576b", "#69bde7", "#8b5cf6"];
   var knownCities = ["上海", "北京", "广州", "深圳", "香港", "东京", "新加坡", "洛杉矶"];
   var periodMs = { "1d": 86400000, "7d": 604800000, "30d": 2592000000 };
-  var state = { period: "1d", protocol: "all", carriers: new Set(["电信", "联通"]), cities: new Set(["上海"]), data: null, domain: null, view: null, hover: null };
+  var state = { period: "1d", protocol: "ICMP", date: "", showExtremes: false, showAverage: false, carriers: new Set(["电信", "联通"]), cities: new Set(["上海"]), data: null, domain: null, view: null, hover: null };
   var canvas = document.getElementById("chart");
   var wrap = document.getElementById("chartWrap");
   var ctx = canvas.getContext("2d");
@@ -694,6 +698,13 @@ canvas { display:block; width:100%; height:100%; }
   function fmtDate(ts) { var d = new Date(ts); return d.getFullYear() + "年" + (d.getMonth()+1) + "月" + d.getDate() + "日"; }
   function fmtTime(ts) { var d = new Date(ts); return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()); }
   function fmtAxis(ts) { var d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  function dateInputValue(ts) { var d = new Date(ts); return d.getFullYear() + "-" + pad(d.getMonth()+1) + "-" + pad(d.getDate()); }
+  function dayRange(value) {
+    var text = value || dateInputValue(Date.now());
+    var parts = text.split("-").map(Number);
+    var start = new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+    return { start: start, end: start + 86400000 };
+  }
   function fmtMs(v) { return !isFinite(v) ? "-" : (v < 100 ? v.toFixed(2) : Math.round(v)) + "ms"; }
   function carrierOf(name) { if (name.indexOf("电信") >= 0) return "电信"; if (name.indexOf("联通") >= 0) return "联通"; if (name.indexOf("移动") >= 0) return "移动"; return "其他"; }
   function cityOf(name) { for (var i = 0; i < knownCities.length; i++) { if (name.indexOf(knownCities[i]) >= 0) return knownCities[i]; } return "其他"; }
@@ -773,9 +784,16 @@ canvas { display:block; width:100%; height:100%; }
     document.getElementById("leftProtocol").style.color = state.protocol === "TCP" ? "#64748b" : "#111827";
   }
 
+  function syncDisplayToggles() {
+    document.getElementById("extremeToggle").classList.toggle("active", state.showExtremes);
+    document.getElementById("averageToggle").classList.toggle("active", state.showAverage);
+  }
+
   function updateDomain() {
-    var end = (state.data && state.data.generated_at) || Date.now();
-    var start = end - (periodMs[state.period] || periodMs["1d"]);
+    var fromResponse = state.data && state.data.start && state.data.end;
+    var range = fromResponse ? { start: state.data.start, end: state.data.end } : dayRange(state.date);
+    var start = range.start;
+    var end = range.end;
     state.domain = { start: start, end: end };
     if (!state.view || state.view.start < start || state.view.end > end) {
       state.view = { start: start, end: end };
@@ -797,9 +815,11 @@ canvas { display:block; width:100%; height:100%; }
   }
 
   function updateRangeLabel() {
-    var label = fmtDate(state.view.start) + " - " + fmtDate(state.view.end);
-    if (fmtDate(state.view.start) === fmtDate(state.view.end)) label = fmtDate(state.view.start);
+    var endLabelTs = Math.max(state.view.start, state.view.end - 1);
+    var label = fmtDate(state.view.start) + " - " + fmtDate(endLabelTs);
+    if (fmtDate(state.view.start) === fmtDate(endLabelTs)) label = fmtDate(state.view.start);
     document.getElementById("rangeLabel").textContent = label;
+    document.getElementById("dateInput").value = state.date;
   }
 
   function visiblePoints(series) {
@@ -819,6 +839,77 @@ canvas { display:block; width:100%; height:100%; }
     });
   }
 
+  function fillRoundRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawValueLabel(text, px, py, color, plot) {
+    ctx.save();
+    ctx.font = "700 11px -apple-system,BlinkMacSystemFont,Segoe UI,Arial";
+    var w = ctx.measureText(text).width + 12;
+    var h = 18;
+    var x0 = Math.max(plot.left, Math.min(plot.left + plot.width - w, px - w / 2));
+    var y0 = Math.max(plot.top, Math.min(plot.top + plot.height - h, py - 22));
+    ctx.fillStyle = color;
+    fillRoundRect(x0, y0, w, h, 4);
+    ctx.fillStyle = "#fff";
+    ctx.fillText(text, x0 + 6, y0 + 13);
+    ctx.restore();
+  }
+
+  function seriesStats(points) {
+    if (!points.length) return null;
+    var min = points[0];
+    var max = points[0];
+    var total = 0;
+    points.forEach(function (p) {
+      if (p.delay < min.delay) min = p;
+      if (p.delay > max.delay) max = p;
+      total += p.delay;
+    });
+    return { min: min, max: max, avg: total / points.length };
+  }
+
+  function drawStats(series, plot, x, y) {
+    if (!state.showAverage && !state.showExtremes) return;
+    series.forEach(function (s, index) {
+      var pts = visiblePoints(s);
+      var stats = seriesStats(pts);
+      if (!stats) return;
+      var color = colors[index % colors.length];
+      if (state.showAverage) {
+        var yy = y(stats.avg);
+        ctx.save();
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.42;
+        ctx.setLineDash([6, 4]);
+        ctx.beginPath();
+        ctx.moveTo(plot.left, yy);
+        ctx.lineTo(plot.left + plot.width, yy);
+        ctx.stroke();
+        ctx.restore();
+        drawValueLabel("平均 " + fmtMs(stats.avg), plot.left + plot.width - 38, yy, color, plot);
+      }
+      if (state.showExtremes) {
+        drawValueLabel("↑ " + fmtMs(stats.max.delay), x(stats.max.ts), y(stats.max.delay), "#ef6461", plot);
+        if (stats.min.ts !== stats.max.ts || Math.abs(stats.min.delay - stats.max.delay) > 0.01) {
+          drawValueLabel("↓ " + fmtMs(stats.min.delay), x(stats.min.ts), y(stats.min.delay) + 28, "#4fa8df", plot);
+        }
+      }
+    });
+  }
+
   function drawChart() {
     var series = aggregateSeries();
     var empty = document.getElementById("emptyBox");
@@ -834,6 +925,8 @@ canvas { display:block; width:100%; height:100%; }
     canvas.height = Math.max(1, Math.floor(rect.height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, rect.width, rect.height);
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, rect.width, rect.height);
 
     var pad = { left: 42, right: 20, top: 22, bottom: 78 };
     var overviewH = 34;
@@ -879,6 +972,7 @@ canvas { display:block; width:100%; height:100%; }
       pts.forEach(function (p, i) { if (i === 0) ctx.moveTo(x(p.ts), y(p.delay)); else ctx.lineTo(x(p.ts), y(p.delay)); });
       ctx.stroke();
     });
+    drawStats(series, plot, x, y);
 
     ctx.fillStyle = "#eef2f8";
     ctx.fillRect(overview.left, overview.top, overview.width, overview.height);
@@ -943,7 +1037,17 @@ canvas { display:block; width:100%; height:100%; }
 
   function renderAll() {
     syncFilters();
+    syncDisplayToggles();
     drawChart();
+  }
+
+  function latencyURL() {
+    var range = dayRange(state.date);
+    var params = new URLSearchParams();
+    params.set("period", state.period);
+    params.set("start", String(range.start));
+    params.set("end", String(range.end));
+    return "/api/v1/netwatch/latency?" + params.toString();
   }
 
   async function load() {
@@ -953,7 +1057,7 @@ canvas { display:block; width:100%; height:100%; }
       var headers = {};
       var token = getToken();
       if (token) headers.Authorization = "Bearer " + token;
-      var res = await fetch("/api/v1/netwatch/latency?period=" + encodeURIComponent(state.period), { headers: headers, credentials: "same-origin" });
+      var res = await fetch(latencyURL(), { headers: headers, credentials: "same-origin" });
       var body = await res.json();
       if (!body.success) throw new Error(body.error || "请求失败");
       state.data = body.data;
@@ -966,10 +1070,43 @@ canvas { display:block; width:100%; height:100%; }
     }
   }
 
+  function shiftDate(days) {
+    var range = dayRange(state.date);
+    state.date = dateInputValue(range.start + days * 86400000);
+    document.getElementById("dateInput").value = state.date;
+    load();
+  }
+
+  function exportChart() {
+    if (!state.data) return;
+    drawChart();
+    var link = document.createElement("a");
+    link.download = "vps-netwatch-latency-" + state.date + "-" + state.protocol.toLowerCase() + ".png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
+
+  state.date = dateInputValue(Date.now());
+  document.getElementById("dateInput").value = state.date;
+  document.getElementById("dateInput").onchange = function () {
+    if (!this.value) return;
+    state.date = this.value;
+    state.view = null;
+    load();
+  };
   document.getElementById("protocolSwitch").onclick = function () {
     state.protocol = state.protocol === "TCP" ? "ICMP" : "TCP";
     renderAll();
   };
+  document.getElementById("extremeToggle").onclick = function () {
+    state.showExtremes = !state.showExtremes;
+    renderAll();
+  };
+  document.getElementById("averageToggle").onclick = function () {
+    state.showAverage = !state.showAverage;
+    renderAll();
+  };
+  document.getElementById("shotBtn").onclick = exportChart;
   document.getElementById("carrierAll").onclick = function () {
     allServiceOptions("carrier").forEach(function (item) { state.carriers.add(item); });
     renderAll();
@@ -979,14 +1116,10 @@ canvas { display:block; width:100%; height:100%; }
     renderAll();
   };
   document.getElementById("prevBtn").onclick = function () {
-    var range = state.view.end - state.view.start;
-    clampView(state.view.start - range * 0.85, state.view.end - range * 0.85);
-    drawChart();
+    shiftDate(-1);
   };
   document.getElementById("nextBtn").onclick = function () {
-    var range = state.view.end - state.view.start;
-    clampView(state.view.start + range * 0.85, state.view.end + range * 0.85);
-    drawChart();
+    shiftDate(1);
   };
   canvas.addEventListener("wheel", function (event) {
     if (!state.domain || !state.view || !lastPlot) return;

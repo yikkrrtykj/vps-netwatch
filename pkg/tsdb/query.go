@@ -79,17 +79,37 @@ type rawDataPoint struct {
 	hasStatus bool
 }
 
+func downsampleIntervalForRange(start, end time.Time) time.Duration {
+	duration := end.Sub(start)
+	switch {
+	case duration > 8*24*time.Hour:
+		return 2 * time.Hour
+	case duration > 2*24*time.Hour:
+		return 30 * time.Minute
+	default:
+		return 30 * time.Second
+	}
+}
+
 func (db *TSDB) QueryServiceHistory(serviceID uint64, period QueryPeriod) (*ServiceHistoryResult, error) {
+	now := time.Now()
+	return db.QueryServiceHistoryRange(serviceID, now.Add(-period.Duration()), now)
+}
+
+func (db *TSDB) QueryServiceHistoryRange(serviceID uint64, start, end time.Time) (*ServiceHistoryResult, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 	if db.closed {
 		return nil, fmt.Errorf("TSDB is closed")
 	}
 
-	now := time.Now()
+	if end.Before(start) || end.Equal(start) {
+		return nil, fmt.Errorf("invalid time range")
+	}
+
 	tr := storage.TimeRange{
-		MinTimestamp: now.Add(-period.Duration()).UnixMilli(),
-		MaxTimestamp: now.UnixMilli(),
+		MinTimestamp: start.UnixMilli(),
+		MaxTimestamp: end.UnixMilli(),
 	}
 
 	serviceIDStr := strconv.FormatUint(serviceID, 10)
@@ -147,7 +167,7 @@ func (db *TSDB) QueryServiceHistory(serviceID uint64, period QueryPeriod) (*Serv
 		for _, p := range pointsMap {
 			points = append(points, *p)
 		}
-		stats := calculateStats(points, period.DownsampleInterval())
+		stats := calculateStats(points, downsampleIntervalForRange(start, end))
 		result.Servers = append(result.Servers, ServerServiceStats{
 			ServerID: serverID,
 			Stats:    stats,
@@ -517,16 +537,24 @@ func (db *TSDB) QueryServerMetrics(serverID uint64, metric MetricType, period Qu
 }
 
 func (db *TSDB) QueryServiceHistoryByServerID(serverID uint64, period QueryPeriod) (map[uint64]*ServiceHistoryResult, error) {
+	now := time.Now()
+	return db.QueryServiceHistoryByServerIDRange(serverID, now.Add(-period.Duration()), now)
+}
+
+func (db *TSDB) QueryServiceHistoryByServerIDRange(serverID uint64, start, end time.Time) (map[uint64]*ServiceHistoryResult, error) {
 	db.mu.RLock()
 	defer db.mu.RUnlock()
 	if db.closed {
 		return nil, fmt.Errorf("TSDB is closed")
 	}
 
-	now := time.Now()
+	if end.Before(start) || end.Equal(start) {
+		return nil, fmt.Errorf("invalid time range")
+	}
+
 	tr := storage.TimeRange{
-		MinTimestamp: now.Add(-period.Duration()).UnixMilli(),
-		MaxTimestamp: now.UnixMilli(),
+		MinTimestamp: start.UnixMilli(),
+		MaxTimestamp: end.UnixMilli(),
 	}
 
 	serverIDStr := strconv.FormatUint(serverID, 10)
@@ -581,7 +609,7 @@ func (db *TSDB) QueryServiceHistoryByServerID(serverID uint64, period QueryPerio
 		for _, p := range pointsMap {
 			points = append(points, *p)
 		}
-		stats := calculateStats(points, period.DownsampleInterval())
+		stats := calculateStats(points, downsampleIntervalForRange(start, end))
 		results[serviceID] = &ServiceHistoryResult{
 			ServiceID: serviceID,
 			Servers: []ServerServiceStats{{

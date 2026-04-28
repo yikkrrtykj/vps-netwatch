@@ -131,10 +131,13 @@ func getServiceHistory(c *gin.Context) (*model.ServiceHistoryResponse, error) {
 }
 
 func queryServiceHistoryFromDB(serviceID uint64, period tsdb.QueryPeriod, response *model.ServiceHistoryResponse) (*model.ServiceHistoryResponse, error) {
-	since := time.Now().Add(-period.Duration())
+	now := time.Now()
+	return queryServiceHistoryFromDBRange(serviceID, now.Add(-period.Duration()), now, response)
+}
 
+func queryServiceHistoryFromDBRange(serviceID uint64, start, end time.Time, response *model.ServiceHistoryResponse) (*model.ServiceHistoryResponse, error) {
 	var histories []model.ServiceHistory
-	if err := singleton.DB.Where("service_id = ? AND server_id != 0 AND created_at >= ?", serviceID, since).
+	if err := singleton.DB.Where("service_id = ? AND server_id != 0 AND created_at >= ? AND created_at < ?", serviceID, start, end).
 		Order("server_id, created_at").Find(&histories).Error; err != nil {
 		return nil, err
 	}
