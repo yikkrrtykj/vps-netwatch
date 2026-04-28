@@ -45,17 +45,17 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       "#vps-netwatch-latency-panel{margin-top:14px;border:1px solid rgba(148,163,184,.26);border-radius:16px;background:rgba(255,255,255,.86);box-shadow:0 10px 28px rgba(15,23,42,.08);overflow:hidden;color:#111827}" +
       ".dark #vps-netwatch-latency-panel{background:rgba(0,0,0,.48);border-color:rgba(255,255,255,.12);color:#f8fafc}" +
       "#vps-netwatch-latency-panel[hidden]{display:none!important}" +
-      ".vpsnw-head{display:grid;grid-template-columns:max-content minmax(0,1fr) auto;align-items:center;gap:8px 10px;padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.22)}" +
-      ".vpsnw-title{grid-column:1;grid-row:1;font-weight:800;font-size:14px;white-space:nowrap}.vpsnw-sub{color:#64748b;font-size:12px}.dark .vpsnw-sub{color:#94a3b8}" +
+      ".vpsnw-head{display:grid;grid-template-columns:max-content minmax(0,1fr);align-items:center;gap:8px 10px;padding:12px 16px;border-bottom:1px solid rgba(148,163,184,.22)}" +
+      ".vpsnw-title{grid-column:1;grid-row:1;font-weight:800;font-size:14px;white-space:nowrap}" +
       ".vpsnw-server-tabs{grid-column:2;grid-row:1;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;min-width:0}.vpsnw-server-btn{border:1px solid rgba(148,163,184,.35);border-radius:999px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 10px;white-space:nowrap}.vpsnw-server-btn.active{border-color:#2563eb;background:#2563eb;color:#fff}.dark .vpsnw-server-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-server-btn.active{background:#dbeafe;border-color:#dbeafe;color:#1d4ed8}" +
-      ".vpsnw-range{grid-column:3;grid-row:1;justify-self:end;text-align:right;max-width:440px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vpsnw-peer-row{grid-column:2/4;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:6px;min-width:0;font-size:12px;color:#64748b}.dark .vpsnw-peer-row{color:#94a3b8}.vpsnw-peer-label{grid-column:1;grid-row:2;font-size:12px;white-space:nowrap;color:#64748b}.dark .vpsnw-peer-label{color:#94a3b8}.vpsnw-peer-tabs{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;min-width:0}.vpsnw-peer-note{min-width:48px;color:#2563eb}.dark .vpsnw-peer-note{color:#93c5fd}.vpsnw-peer-btn{border:1px solid rgba(148,163,184,.35);border-radius:7px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 9px;white-space:nowrap}.vpsnw-peer-btn.active{border-color:#0f172a;background:#0f172a;color:#fff}.vpsnw-peer-btn:disabled{cursor:not-allowed;opacity:.58}.dark .vpsnw-peer-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-peer-btn.active{background:#f8fafc;border-color:#f8fafc;color:#0f172a}" +
+      ".vpsnw-peer-row{grid-column:2;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:6px;min-width:0;font-size:12px;color:#64748b}.dark .vpsnw-peer-row{color:#94a3b8}.vpsnw-peer-label{grid-column:1;grid-row:2;font-size:12px;white-space:nowrap;color:#64748b}.dark .vpsnw-peer-label{color:#94a3b8}.vpsnw-peer-tabs{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;min-width:0}.vpsnw-peer-note{min-width:48px;color:#2563eb}.dark .vpsnw-peer-note{color:#93c5fd}.vpsnw-peer-btn{border:1px solid rgba(148,163,184,.35);border-radius:7px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 9px;white-space:nowrap}.vpsnw-peer-btn.active{border-color:#0f172a;background:#0f172a;color:#fff}.vpsnw-peer-btn:disabled{cursor:not-allowed;opacity:.58}.dark .vpsnw-peer-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-peer-btn.active{background:#f8fafc;border-color:#f8fafc;color:#0f172a}" +
       ".vpsnw-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid rgba(148,163,184,.18)}.vpsnw-tool,.vpsnw-date,.vpsnw-protocol{display:inline-flex;align-items:center;gap:7px;min-height:30px;border:1px solid rgba(148,163,184,.32);border-radius:7px;background:rgba(248,250,252,.88);color:#334155;font-size:12px;line-height:1;padding:4px 8px}.dark .vpsnw-tool,.dark .vpsnw-date,.dark .vpsnw-protocol{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#e2e8f0}.vpsnw-date input{border:0;outline:0;background:transparent;color:inherit;font:inherit;font-weight:700;min-width:116px}.vpsnw-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(148,163,184,.32);border-radius:7px;background:rgba(248,250,252,.88);color:#334155;cursor:pointer}.dark .vpsnw-icon-btn{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#e2e8f0}.vpsnw-icon-btn svg{width:15px;height:15px}.vpsnw-chip{border:1px solid rgba(148,163,184,.32);border-radius:6px;background:transparent;color:inherit;cursor:pointer;font:inherit;line-height:1;padding:5px 8px}.vpsnw-chip.active{border-color:#2563eb;background:#2563eb;color:#fff}.dark .vpsnw-chip.active{border-color:#dbeafe;background:#dbeafe;color:#1d4ed8}.vpsnw-muted{color:#64748b}.dark .vpsnw-muted{color:#94a3b8}" +
       ".vpsnw-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 18px;padding:10px 14px 2px;font-size:13px}.vpsnw-legend span{display:inline-flex;align-items:center;gap:6px}.vpsnw-dot{width:10px;height:10px;border-radius:50%;display:inline-block}" +
       ".vpsnw-chart{position:relative;height:360px;padding:6px 14px 14px}.vpsnw-chart canvas{width:100%;height:100%;display:block}" +
       ".vpsnw-tip{display:none;position:absolute;z-index:20;min-width:160px;max-width:260px;padding:10px 12px;border:1px solid rgba(148,163,184,.35);border-radius:8px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.2);font-size:13px;color:#111827;pointer-events:none}.dark .vpsnw-tip{background:rgba(15,15,15,.96);color:#f8fafc}" +
       ".vpsnw-tip-time{color:#475569;margin-bottom:6px}.dark .vpsnw-tip-time{color:#cbd5e1}.vpsnw-tip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;line-height:1.7}.vpsnw-tip-name{display:flex;align-items:center;gap:6px}" +
       ".vpsnw-empty{display:none;padding:22px 16px;color:#94a3b8;text-align:center;font-size:13px}" +
-      "@media(max-width:760px){.vpsnw-chart{height:300px;padding-left:8px;padding-right:8px}.vpsnw-head{grid-template-columns:1fr}.vpsnw-title,.vpsnw-server-tabs,.vpsnw-range,.vpsnw-peer-label,.vpsnw-peer-row{grid-column:1;grid-row:auto}.vpsnw-range{justify-self:start;max-width:100%;text-align:left;white-space:normal}.vpsnw-tools{padding:8px}.vpsnw-date{flex:1}.vpsnw-date input{min-width:0;width:100%}}";
+      "@media(max-width:760px){.vpsnw-chart{height:300px;padding-left:8px;padding-right:8px}.vpsnw-head{grid-template-columns:1fr}.vpsnw-title,.vpsnw-server-tabs,.vpsnw-peer-label,.vpsnw-peer-row{grid-column:1;grid-row:auto}.vpsnw-tools{padding:8px}.vpsnw-date{flex:1}.vpsnw-date input{min-width:0;width:100%}}";
     document.head.appendChild(style);
   }
 
@@ -96,7 +96,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       panel.id = "vps-netwatch-latency-panel";
       panel.hidden = true;
       panel.innerHTML =
-        '<div class="vpsnw-head"><div class="vpsnw-title">延迟</div><div class="vpsnw-server-tabs" id="vpsnw-server-tabs"></div><div class="vpsnw-sub vpsnw-range" id="vpsnw-range">加载中</div><span class="vpsnw-peer-label">互 ping 目标</span><div class="vpsnw-peer-row"><div class="vpsnw-peer-tabs" id="vpsnw-peer-tabs"></div><span class="vpsnw-peer-note" id="vpsnw-peer-note"></span></div></div>' +
+        '<div class="vpsnw-head"><div class="vpsnw-title">延迟</div><div class="vpsnw-server-tabs" id="vpsnw-server-tabs"></div><span class="vpsnw-peer-label">互 ping 目标</span><div class="vpsnw-peer-row"><div class="vpsnw-peer-tabs" id="vpsnw-peer-tabs"></div><span class="vpsnw-peer-note" id="vpsnw-peer-note"></span></div></div>' +
         '<div class="vpsnw-tools"><button class="vpsnw-icon-btn" id="vpsnw-prev-day" title="上一天"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M12.8 4.2a1 1 0 0 1 0 1.4L8.4 10l4.4 4.4a1 1 0 1 1-1.4 1.4l-5.1-5.1a1 1 0 0 1 0-1.4l5.1-5.1a1 1 0 0 1 1.4 0Z"/></svg></button><label class="vpsnw-date"><span class="vpsnw-muted">日期</span><input id="vpsnw-date" type="date"></label><button class="vpsnw-icon-btn" id="vpsnw-next-day" title="下一天"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M7.2 15.8a1 1 0 0 1 0-1.4l4.4-4.4-4.4-4.4a1 1 0 0 1 1.4-1.4l5.1 5.1a1 1 0 0 1 0 1.4l-5.1 5.1a1 1 0 0 1-1.4 0Z"/></svg></button><div class="vpsnw-protocol"><span class="vpsnw-muted">协议</span><button class="vpsnw-chip" data-vpsnw-protocol="ICMP">ICMP</button><button class="vpsnw-chip" data-vpsnw-protocol="TCP">TCP</button></div><div class="vpsnw-tool"><span class="vpsnw-muted">显示</span><button class="vpsnw-chip" id="vpsnw-extremes">极值</button><button class="vpsnw-chip" id="vpsnw-average">平均线</button></div></div>' +
         '<div class="vpsnw-empty" id="vpsnw-empty">暂无延迟数据</div>' +
         '<div class="vpsnw-legend" id="vpsnw-legend"></div>' +
@@ -199,14 +199,6 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       return;
     }
     state.selectedServerId = servers.length ? String(servers[0].id) : "";
-  }
-
-  function selectedServerName() {
-    var servers = (state.data && state.data.servers) || [];
-    for (var i = 0; i < servers.length; i++) {
-      if (String(servers[i].id) === String(state.selectedServerId)) return servers[i].name || ("VPS " + servers[i].id);
-    }
-    return "未选择 VPS";
   }
 
   function renderServerTabs() {
@@ -496,7 +488,6 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     panel.querySelector("#vpsnw-empty").style.display = series.length ? "none" : "block";
     panel.querySelector(".vpsnw-chart").style.display = series.length ? "block" : "none";
     renderLegend(series);
-    panel.querySelector("#vpsnw-range").textContent = selectedServerName() + " | " + fmtTime(state.view.start) + " - " + fmtTime(state.view.end);
     if (!series.length) return;
 
     var rect = canvas.getBoundingClientRect();
