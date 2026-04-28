@@ -28,7 +28,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
 (function () {
   var marker = "data-vps-netwatch-latency";
   var buttonClass = "inset-shadow-2xs inset-shadow-white/20 flex cursor-pointer flex-col items-center gap-0 rounded-[50px] bg-blue-100 p-2.5 text-blue-600 transition-all dark:bg-blue-900 dark:text-blue-100";
-  var activeClass = "inset-shadow-black/20 bg-blue-600 text-white dark:bg-blue-100 dark:text-blue-600";
+  var activeClass = "inset-shadow-black/20 bg-blue-600 text-white ring-2 ring-blue-300/70 dark:bg-blue-600 dark:text-white dark:ring-blue-300/70";
   var colors = ["#5276d8", "#f2c14e", "#73bf69", "#e4576b", "#69bde7", "#8b5cf6", "#14b8a6", "#f97316", "#ec4899", "#64748b"];
   var state = { visible: false, loaded: false, loading: false, data: null, domain: null, view: null, hover: null, date: "", protocol: "ICMP", showExtremes: false, showAverage: false, selectedServerId: "", peerTargetServerId: "", peerSaving: false, refreshTimer: 0, peerTimer: 0, peerWaitUntil: 0 };
   var panel;
@@ -97,7 +97,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       panel.hidden = true;
       panel.innerHTML =
         '<div class="vpsnw-head"><div class="vpsnw-title">延迟</div><div class="vpsnw-server-tabs" id="vpsnw-server-tabs"></div><div class="vpsnw-sub vpsnw-range" id="vpsnw-range">加载中</div><span class="vpsnw-peer-label">互 ping 目标</span><div class="vpsnw-peer-row"><div class="vpsnw-peer-tabs" id="vpsnw-peer-tabs"></div><span class="vpsnw-peer-note" id="vpsnw-peer-note"></span></div></div>' +
-        '<div class="vpsnw-tools"><button class="vpsnw-icon-btn" id="vpsnw-prev-day" title="上一天"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M12.8 4.2a1 1 0 0 1 0 1.4L8.4 10l4.4 4.4a1 1 0 1 1-1.4 1.4l-5.1-5.1a1 1 0 0 1 0-1.4l5.1-5.1a1 1 0 0 1 1.4 0Z"/></svg></button><label class="vpsnw-date"><span class="vpsnw-muted">日期</span><input id="vpsnw-date" type="date"></label><button class="vpsnw-icon-btn" id="vpsnw-next-day" title="下一天"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M7.2 15.8a1 1 0 0 1 0-1.4l4.4-4.4-4.4-4.4a1 1 0 0 1 1.4-1.4l5.1 5.1a1 1 0 0 1 0 1.4l-5.1 5.1a1 1 0 0 1-1.4 0Z"/></svg></button><div class="vpsnw-protocol"><span class="vpsnw-muted">协议</span><button class="vpsnw-chip" data-vpsnw-protocol="ICMP">ICMP</button><button class="vpsnw-chip" data-vpsnw-protocol="TCP">TCP</button></div><div class="vpsnw-tool"><span class="vpsnw-muted">显示</span><button class="vpsnw-chip" id="vpsnw-extremes">极值</button><button class="vpsnw-chip" id="vpsnw-average">平均线</button></div><button class="vpsnw-icon-btn" id="vpsnw-shot" title="导出截图"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M5 3h10a2 2 0 0 1 2 2v3h-2V5H5v3H3V5a2 2 0 0 1 2-2Zm10 9h2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3h2v3h10v-3Z"/><path d="M9 4h2v7.6l2.3-2.3 1.4 1.4-4.7 4.7-4.7-4.7 1.4-1.4L9 11.6V4Z"/></svg></button></div>' +
+        '<div class="vpsnw-tools"><button class="vpsnw-icon-btn" id="vpsnw-prev-day" title="上一天"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M12.8 4.2a1 1 0 0 1 0 1.4L8.4 10l4.4 4.4a1 1 0 1 1-1.4 1.4l-5.1-5.1a1 1 0 0 1 0-1.4l5.1-5.1a1 1 0 0 1 1.4 0Z"/></svg></button><label class="vpsnw-date"><span class="vpsnw-muted">日期</span><input id="vpsnw-date" type="date"></label><button class="vpsnw-icon-btn" id="vpsnw-next-day" title="下一天"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M7.2 15.8a1 1 0 0 1 0-1.4l4.4-4.4-4.4-4.4a1 1 0 0 1 1.4-1.4l5.1 5.1a1 1 0 0 1 0 1.4l-5.1 5.1a1 1 0 0 1-1.4 0Z"/></svg></button><div class="vpsnw-protocol"><span class="vpsnw-muted">协议</span><button class="vpsnw-chip" data-vpsnw-protocol="ICMP">ICMP</button><button class="vpsnw-chip" data-vpsnw-protocol="TCP">TCP</button></div><div class="vpsnw-tool"><span class="vpsnw-muted">显示</span><button class="vpsnw-chip" id="vpsnw-extremes">极值</button><button class="vpsnw-chip" id="vpsnw-average">平均线</button></div></div>' +
         '<div class="vpsnw-empty" id="vpsnw-empty">暂无延迟数据</div>' +
         '<div class="vpsnw-legend" id="vpsnw-legend"></div>' +
         '<div class="vpsnw-chart"><canvas id="vpsnw-canvas"></canvas><div class="vpsnw-tip" id="vpsnw-tip"></div></div>';
@@ -147,7 +147,6 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     panel.querySelector("#vpsnw-next-day").onclick = function () { shiftDate(1); };
     panel.querySelector("#vpsnw-extremes").onclick = function () { state.showExtremes = !state.showExtremes; draw(); };
     panel.querySelector("#vpsnw-average").onclick = function () { state.showAverage = !state.showAverage; draw(); };
-    panel.querySelector("#vpsnw-shot").onclick = exportChart;
     Array.prototype.forEach.call(panel.querySelectorAll("[data-vpsnw-protocol]"), function (btn) {
       btn.onclick = function () {
         state.protocol = btn.getAttribute("data-vpsnw-protocol") || "ICMP";
@@ -185,15 +184,6 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     params.set("start", String(range.start));
     params.set("end", String(range.end));
     return "/api/v1/netwatch/latency?" + params.toString();
-  }
-
-  function exportChart() {
-    if (!canvas || !state.data) return;
-    draw();
-    var link = document.createElement("a");
-    link.download = "vps-netwatch-latency-" + (state.date || dateInputValue(Date.now())) + "-" + state.protocol.toLowerCase() + ".png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
   }
 
   function ensureSelectedServer() {

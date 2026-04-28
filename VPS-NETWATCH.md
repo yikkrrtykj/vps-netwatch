@@ -116,7 +116,6 @@ image: ghcr.io/nezhahq/nezha:latest
 - 在 ICMP 和 TCP Ping 监控之间切换。
 - 勾选显示极值标签，默认关闭。
 - 勾选显示平均线，默认关闭。
-- 点击截图按钮导出当前图表 PNG。
 
 ## 同步上游
 
