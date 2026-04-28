@@ -156,11 +156,6 @@ func routers(r *gin.Engine, frontendDist fs.FS) {
 	auth.PATCH("/setting", adminHandler(updateConfig))
 	auth.POST("/maintenance", adminHandler(runMaintenance))
 
-	r.GET("/dashboard/netwatch/latency", netwatchLatencyPage)
-	r.GET("/netwatch/latency", func(c *gin.Context) {
-		c.Redirect(http.StatusMovedPermanently, "/dashboard/netwatch/latency")
-	})
-
 	r.NoRoute(fallbackToFrontend(frontendDist))
 }
 

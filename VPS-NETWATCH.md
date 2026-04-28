@@ -108,11 +108,7 @@ image: ghcr.io/nezhahq/nezha:latest
 
 ## 自定义延迟面板
 
-本仓库把自定义 Ping 延迟能力合并到哪吒现有延迟页面：
-
-```text
-http://主控VPS公网IP:8008/dashboard/netwatch/latency
-```
+本仓库把自定义 Ping 延迟能力合并到首页概览里的内嵌延迟面板。进入首页后点击圆形的延迟图标，就能展开面板。
 
 当前能力：
 

@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"net/http"
 	"sort"
 	"strconv"
 	"strings"
@@ -79,10 +78,6 @@ const (
 	netwatchPeerServiceSuffix = "] "
 )
 
-func netwatchLatencyPage(c *gin.Context) {
-	c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(netwatchLatencyHTMLV2))
-}
-
 func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 	periodKey := c.DefaultQuery("period", "1d")
 	period, err := tsdb.ParseQueryPeriod(periodKey)
@@ -95,7 +90,7 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 	}
 
 	_, isMember := c.Get(model.CtxKeyAuthorizedUser)
-	if !isMember && (end.Sub(start) > 24*time.Hour+time.Minute || start.Before(time.Now().Add(-24*time.Hour-time.Minute))) {
+	if !isMember && end.Sub(start) > 24*time.Hour+time.Minute {
 		return nil, singleton.Localizer.ErrorT("unauthorized: only 1d data available for guests")
 	}
 
