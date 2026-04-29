@@ -101,6 +101,8 @@ func routers(r *gin.Engine, frontendDist fs.FS) {
 	auth.POST("/service", commonHandler(createService))
 	auth.PATCH("/service/:id", commonHandler(updateService))
 	auth.POST("/batch-delete/service", commonHandler(batchDeleteService))
+	auth.POST("/netwatch/target", commonHandler(createNetwatchTarget))
+	auth.POST("/netwatch/mihomo/discover", commonHandler(discoverNetwatchMihomoTargets))
 	auth.POST("/netwatch/peer-target", commonHandler(updateNetwatchPeerTarget))
 
 	auth.POST("/server-group", commonHandler(createServerGroup))

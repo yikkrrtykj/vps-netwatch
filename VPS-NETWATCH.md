@@ -96,6 +96,9 @@ ghcr.io/yikkrrtykj/vps-netwatch:v1.0.0
 当前能力：
 
 - VPS 快览：每台机器直接显示带宽标签、实时速率、总传输和最新延迟。
+- 目标向导：输入 `IP/域名` 自动创建 ICMP，输入 `IP:端口` 自动创建 TCP。
+- 异常标记：自动提示峰值、持续抖动和丢包区间。
+- mihomo/Clash 连接发现：读取 `/connections` 后可以把连接目标一键加入监控。
 - 选择日期查看当天延迟历史。
 - 在 ICMP 和 TCP Ping 监控之间切换。
 - 勾选显示极值标签，默认关闭。
@@ -114,9 +117,25 @@ ghcr.io/yikkrrtykj/vps-netwatch:v1.0.0
 bandwidth=1Gbps
 ```
 
+目标向导示例：
+
+```text
+1.1.1.1          -> ICMP-Ping
+example.com      -> ICMP-Ping
+1.1.1.1:443      -> TCP-Ping
+example.com:443  -> TCP-Ping
+```
+
+mihomo/Clash 连接发现需要填写主控 Dashboard 能访问到的 external-controller 地址，例如：
+
+```text
+http://192.168.50.10:9090
+```
+
+如果控制器设置了 `secret`，也要在面板里填密钥。
+
 ## 后续方向
 
-- 目标添加向导：输入 `IP` 自动创建 ICMP，输入 `IP:端口` 自动创建 TCP。
 - 游戏服务器目标 IP 观察和延迟诊断。
 - 每台 VPS 的出口 IP/ASN/地区检测。
 - 代理链路、规则命中、连接目标排障视图。

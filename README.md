@@ -11,6 +11,9 @@
 - 默认开启 TSDB，方便保存历史数据。
 - 首页内嵌延迟图。
 - 内嵌面板里有 VPS 快览，每台机器直接显示带宽、实时速率、总传输和最新延迟。
+- 目标向导：输入 `IP/域名` 自动创建 ICMP，输入 `IP:端口` 自动创建 TCP。
+- 异常标记：自动提示峰值、持续抖动和丢包区间，点击标记可以缩放到对应时间段。
+- mihomo/Clash 连接发现：读取 `/connections` 后可以把游戏服或连接目标一键加入监控。
 - 可以先选一台 VPS，默认看它到上海电信、上海联通的 ping。
 - 需要排障时，可以临时选择一台其它 VPS 做互 ping 目标。
 - 鼠标悬停看具体延迟，滚轮缩放时间，双击恢复。
@@ -179,6 +182,19 @@ apt install -y curl unzip
 ```text
 bandwidth=1Gbps
 ```
+
+### 10. 目标向导和连接发现
+
+在首页内嵌延迟面板里，`目标向导` 支持：
+
+```text
+1.1.1.1          -> ICMP-Ping
+example.com      -> ICMP-Ping
+1.1.1.1:443      -> TCP-Ping
+example.com:443  -> TCP-Ping
+```
+
+`mihomo / Clash 连接发现` 读取的是 external-controller 的 `/connections`。如果 Dashboard 和 mihomo 不在同一台机器或同一内网，主控 VPS 可能访问不到 `127.0.0.1:9090`，这时要填主控能访问到的控制器地址。
 
 ## 常见问题
 
