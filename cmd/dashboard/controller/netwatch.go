@@ -35,9 +35,19 @@ type netwatchLatencyServer struct {
 	ID             uint64 `json:"id"`
 	Name           string `json:"name"`
 	IP             string `json:"ip,omitempty"`
+	IPv4           string `json:"ipv4,omitempty"`
+	IPv6           string `json:"ipv6,omitempty"`
+	CountryCode    string `json:"country_code,omitempty"`
+	Platform       string `json:"platform,omitempty"`
 	Online         bool   `json:"online"`
 	BandwidthLabel string `json:"bandwidth_label,omitempty"`
 	RemainingLabel string `json:"remaining_label,omitempty"`
+	CPU            float64 `json:"cpu,omitempty"`
+	MemUsed        uint64  `json:"mem_used,omitempty"`
+	MemTotal       uint64  `json:"mem_total,omitempty"`
+	DiskUsed       uint64  `json:"disk_used,omitempty"`
+	DiskTotal      uint64  `json:"disk_total,omitempty"`
+	Uptime         uint64  `json:"uptime,omitempty"`
 	NetInSpeed     uint64 `json:"net_in_speed,omitempty"`
 	NetOutSpeed    uint64 `json:"net_out_speed,omitempty"`
 	NetInTransfer  uint64 `json:"net_in_transfer,omitempty"`
@@ -163,15 +173,30 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 			continue
 		}
 		visibleServers[id] = server
+		ipv4, ipv6 := netwatchServerIPVersions(server)
 		serverInfo := netwatchLatencyServer{
 			ID:             id,
 			Name:           server.Name,
 			IP:             netwatchPeerTargetIP(server, serverMap),
+			IPv4:           ipv4,
+			IPv6:           ipv6,
 			Online:         server.TaskStream != nil,
 			BandwidthLabel: netwatchServerBandwidthLabel(server),
 			RemainingLabel: netwatchServerRemainingLabel(server),
 		}
+		if server.GeoIP != nil {
+			serverInfo.CountryCode = server.GeoIP.CountryCode
+		}
+		if server.Host != nil {
+			serverInfo.Platform = server.Host.Platform
+			serverInfo.MemTotal = server.Host.MemTotal
+			serverInfo.DiskTotal = server.Host.DiskTotal
+		}
 		if server.State != nil {
+			serverInfo.CPU = server.State.CPU
+			serverInfo.MemUsed = server.State.MemUsed
+			serverInfo.DiskUsed = server.State.DiskUsed
+			serverInfo.Uptime = server.State.Uptime
 			serverInfo.NetInSpeed = server.State.NetInSpeed
 			serverInfo.NetOutSpeed = server.State.NetOutSpeed
 			serverInfo.NetInTransfer = server.State.NetInTransfer
@@ -180,6 +205,9 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 		resp.Servers = append(resp.Servers, serverInfo)
 	}
 	sort.Slice(resp.Servers, func(i, j int) bool { return resp.Servers[i].Name < resp.Servers[j].Name })
+	if netwatchTruthy(c.Query("servers_only")) {
+		return resp, nil
+	}
 
 	for _, service := range singleton.ServiceSentinelShared.GetSortedList() {
 		if service == nil || !netwatchIsLatencyService(service.Type) {
@@ -1060,6 +1088,22 @@ func netwatchPeerTargetIP(server *model.Server, serverMap map[uint64]*model.Serv
 		}
 	}
 	return ""
+}
+
+func netwatchServerIPVersions(server *model.Server) (string, string) {
+	if server == nil || server.GeoIP == nil {
+		return "", ""
+	}
+	return server.GeoIP.IP.IPv4Addr, server.GeoIP.IP.IPv6Addr
+}
+
+func netwatchTruthy(value string) bool {
+	switch strings.ToLower(strings.TrimSpace(value)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func netwatchDisplayServiceName(service *model.Service, serverMap map[uint64]*model.Server) string {

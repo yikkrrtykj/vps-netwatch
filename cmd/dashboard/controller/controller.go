@@ -310,6 +310,13 @@ func fallbackToFrontend(frontendDist fs.FS) func(*gin.Context) {
 					return true
 				}
 			}
+			if netwatchShouldRewriteUserAsset(path) {
+				content, err := os.ReadFile(path)
+				if err == nil {
+					netwatchServeBrandedUserAsset(c, customStatusCode, path, content)
+					return true
+				}
+			}
 			http.ServeFile(utils.NewGinCustomWriter(c, customStatusCode), c.Request, path)
 			return true
 		}
@@ -329,6 +336,13 @@ func fallbackToFrontend(frontendDist fs.FS) func(*gin.Context) {
 			content, err := io.ReadAll(f)
 			if err == nil {
 				netwatchServeInjectedUserIndex(c, customStatusCode, content)
+				return true
+			}
+		}
+		if netwatchShouldRewriteUserAsset(path) {
+			content, err := io.ReadAll(f)
+			if err == nil {
+				netwatchServeBrandedUserAsset(c, customStatusCode, path, content)
 				return true
 			}
 		}
