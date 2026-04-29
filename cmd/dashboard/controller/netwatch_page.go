@@ -48,7 +48,10 @@ func netwatchServeBrandedUserAsset(c *gin.Context, statusCode int, filePath stri
 	c.Data(statusCode, contentType, []byte(netwatchApplyUserBranding(string(content))))
 }
 
-var netwatchAssetRefPattern = regexp.MustCompile(`(src|href)="(/assets/[^"?]+\.(?:js|css))"`)
+var (
+	netwatchAssetRefPattern     = regexp.MustCompile(`(src|href)="(/assets/[^"?]+\.(?:js|css))"`)
+	netwatchModulePreloadPattern = regexp.MustCompile(`(?m)^\s*<link rel="modulepreload"[^>]*>\s*\n?`)
+)
 
 func netwatchHardenUserIndex(content string) string {
 	content = strings.NewReplacer(
@@ -57,12 +60,14 @@ func netwatchHardenUserIndex(content string) string {
 		`    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/font-logos@1/assets/font-logos.css" />`+"\n",
 		"",
 	).Replace(content)
-	content = netwatchAssetRefPattern.ReplaceAllString(content, `${1}="${2}?v=vps-netwatch-20260430"`)
+	content = netwatchModulePreloadPattern.ReplaceAllString(content, "")
+	content = strings.Replace(content, `<div id="root"></div>`, `<div id="root" class="loaded"><div id="vps-netwatch-boot" style="box-sizing:border-box;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#111827;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:14px">Loading vps-netwatch...</div></div>`, 1)
+	content = netwatchAssetRefPattern.ReplaceAllString(content, `${1}="${2}?v=vps-netwatch-20260430b"`)
 	if strings.Contains(content, "vps-netwatch-root-fallback") {
 		return content
 	}
-	if strings.Contains(content, "</head>") {
-		return strings.Replace(content, "</head>", netwatchRootFallbackScript+"</head>", 1)
+	if strings.Contains(content, "<head>") {
+		return strings.Replace(content, "<head>", "<head>"+netwatchRootFallbackScript, 1)
 	}
 	return netwatchRootFallbackScript + content
 }
@@ -103,7 +108,8 @@ const netwatchRootFallbackScript = `<script id="vps-netwatch-root-fallback">
   function showFallback() {
     showRoot();
     var root = document.getElementById("root");
-    if (!root || root.childElementCount || String(root.textContent || "").trim()) return;
+    var boot = document.getElementById("vps-netwatch-boot");
+    if (!root || ((root.childElementCount || String(root.textContent || "").trim()) && !boot)) return;
     root.innerHTML = '<div style="box-sizing:border-box;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#fafafa;color:#111827;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;padding:24px"><div style="max-width:560px;border:1px solid #d1d5db;border-radius:8px;background:white;padding:18px 20px;box-shadow:0 12px 32px rgba(15,23,42,.08)"><h1 style="font-size:16px;margin:0 0 8px">Page script did not start</h1><p style="font-size:13px;line-height:1.6;margin:0;color:#4b5563">The HTML loaded, but the app bundle did not mount. Clear this site data or open a private window, then refresh.</p>' + (errors.length ? '<pre style="margin:12px 0 0;white-space:pre-wrap;font-size:12px;color:#b91c1c">' + errors.join("\n") + '</pre>' : '') + '</div></div>';
   }
   if (document.readyState === "loading") {
