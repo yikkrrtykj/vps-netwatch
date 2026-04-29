@@ -18,7 +18,7 @@ func netwatchShouldRewriteUserAsset(filePath string) bool {
 }
 
 func netwatchServeInjectedUserIndex(c *gin.Context, statusCode int, content []byte) {
-	html := netwatchApplyUserBranding(string(content))
+	html := netwatchHardenUserIndex(netwatchApplyUserBranding(string(content)))
 	scripts := ""
 	if !strings.Contains(html, "vps-netwatch-home-button") {
 		scripts += netwatchHomeButtonScript
@@ -46,6 +46,22 @@ func netwatchServeBrandedUserAsset(c *gin.Context, statusCode int, filePath stri
 	c.Data(statusCode, contentType, []byte(netwatchApplyUserBranding(string(content))))
 }
 
+func netwatchHardenUserIndex(content string) string {
+	content = strings.NewReplacer(
+		`    <link rel="stylesheet" href="https://fastly.jsdelivr.net/gh/lipis/flag-icons@7.0.0/css/flag-icons.min.css" />`+"\n",
+		"",
+		`    <link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/font-logos@1/assets/font-logos.css" />`+"\n",
+		"",
+	).Replace(content)
+	if strings.Contains(content, "vps-netwatch-root-fallback") {
+		return content
+	}
+	if strings.Contains(content, "</head>") {
+		return strings.Replace(content, "</head>", netwatchRootFallbackScript+"</head>", 1)
+	}
+	return netwatchRootFallbackScript + content
+}
+
 func netwatchApplyUserBranding(content string) string {
 	return strings.NewReplacer(
 		"https://github.com/naiba/nezha", "https://github.com/yikkrrtykj/vps-netwatch",
@@ -60,6 +76,23 @@ func netwatchApplyUserBranding(content string) string {
 		"Nezha", "vps-netwatch",
 	).Replace(content)
 }
+
+const netwatchRootFallbackScript = `<script id="vps-netwatch-root-fallback">
+(function () {
+  function showRoot() {
+    var root = document.getElementById("root");
+    if (root) root.classList.add("loaded");
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", showRoot, { once: true });
+  } else {
+    showRoot();
+  }
+  window.addEventListener("load", showRoot, { once: true });
+  window.setTimeout(showRoot, 800);
+  window.setTimeout(showRoot, 2500);
+})();
+</script>`
 
 const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
 (function () {
