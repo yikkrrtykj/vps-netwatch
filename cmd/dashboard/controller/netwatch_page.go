@@ -50,12 +50,13 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       ".vpsnw-server-tabs{grid-column:2;grid-row:1;display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;min-width:0}.vpsnw-server-btn{border:1px solid rgba(148,163,184,.35);border-radius:999px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 10px;white-space:nowrap}.vpsnw-server-btn.active{border-color:#2563eb;background:#2563eb;color:#fff}.dark .vpsnw-server-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-server-btn.active{background:#dbeafe;border-color:#dbeafe;color:#1d4ed8}" +
       ".vpsnw-peer-row{grid-column:2;grid-row:2;display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:6px;min-width:0;font-size:12px;color:#64748b}.dark .vpsnw-peer-row{color:#94a3b8}.vpsnw-peer-label{grid-column:1;grid-row:2;font-size:12px;white-space:nowrap;color:#64748b}.dark .vpsnw-peer-label{color:#94a3b8}.vpsnw-peer-tabs{display:flex;flex-wrap:wrap;justify-content:flex-start;gap:6px;min-width:0}.vpsnw-peer-note{min-width:48px;color:#2563eb}.dark .vpsnw-peer-note{color:#93c5fd}.vpsnw-peer-btn{border:1px solid rgba(148,163,184,.35);border-radius:7px;background:rgba(248,250,252,.9);color:#334155;cursor:pointer;font-size:12px;line-height:1;padding:5px 9px;white-space:nowrap}.vpsnw-peer-btn.active{border-color:#0f172a;background:#0f172a;color:#fff}.vpsnw-peer-btn:disabled{cursor:not-allowed;opacity:.58}.dark .vpsnw-peer-btn{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.16);color:#e2e8f0}.dark .vpsnw-peer-btn.active{background:#f8fafc;border-color:#f8fafc;color:#0f172a}" +
       ".vpsnw-tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid rgba(148,163,184,.18)}.vpsnw-tool,.vpsnw-date,.vpsnw-protocol{display:inline-flex;align-items:center;gap:7px;min-height:30px;border:1px solid rgba(148,163,184,.32);border-radius:7px;background:rgba(248,250,252,.88);color:#334155;font-size:12px;line-height:1;padding:4px 8px}.dark .vpsnw-tool,.dark .vpsnw-date,.dark .vpsnw-protocol{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#e2e8f0}.vpsnw-date input{border:0;outline:0;background:transparent;color:inherit;font:inherit;font-weight:700;min-width:116px}.vpsnw-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:1px solid rgba(148,163,184,.32);border-radius:7px;background:rgba(248,250,252,.88);color:#334155;cursor:pointer}.dark .vpsnw-icon-btn{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#e2e8f0}.vpsnw-icon-btn svg{width:15px;height:15px}.vpsnw-chip{border:1px solid rgba(148,163,184,.32);border-radius:6px;background:transparent;color:inherit;cursor:pointer;font:inherit;line-height:1;padding:5px 8px}.vpsnw-chip.active{border-color:#2563eb;background:#2563eb;color:#fff}.dark .vpsnw-chip.active{border-color:#dbeafe;background:#dbeafe;color:#1d4ed8}.vpsnw-muted{color:#64748b}.dark .vpsnw-muted{color:#94a3b8}" +
+      ".vpsnw-overview{border-bottom:1px solid rgba(148,163,184,.18);padding:10px 14px 12px}.vpsnw-overview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:12px;color:#64748b}.dark .vpsnw-overview-head{color:#94a3b8}.vpsnw-overview-head b{font-size:13px;color:#0f172a}.dark .vpsnw-overview-head b{color:#f8fafc}.vpsnw-overview-table{display:grid;gap:6px;max-height:260px;overflow:auto;padding-right:2px}.vpsnw-overview-row{display:grid;grid-template-columns:minmax(150px,.9fr) minmax(210px,.9fr) minmax(260px,1.4fr);align-items:center;gap:10px;border:1px solid rgba(148,163,184,.2);border-radius:10px;background:rgba(248,250,252,.72);padding:8px 10px;cursor:pointer}.dark .vpsnw-overview-row{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.11)}.vpsnw-overview-row.active{border-color:#2563eb;background:rgba(219,234,254,.72)}.dark .vpsnw-overview-row.active{border-color:#93c5fd;background:rgba(37,99,235,.18)}.vpsnw-overview-name{display:flex;align-items:center;gap:8px;min-width:0}.vpsnw-overview-name strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}.vpsnw-status-dot{width:9px;height:9px;border-radius:999px;background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.12);flex:0 0 auto}.vpsnw-status-dot.online{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}.vpsnw-band-label{border:1px solid rgba(99,102,241,.25);border-radius:999px;background:rgba(99,102,241,.12);color:#4f46e5;font-style:normal;font-size:11px;line-height:1;padding:3px 7px;white-space:nowrap}.dark .vpsnw-band-label{background:rgba(129,140,248,.16);color:#c7d2fe}.vpsnw-overview-band{display:flex;flex-wrap:wrap;gap:5px 10px;font-size:12px;color:#334155}.dark .vpsnw-overview-band{color:#dbeafe}.vpsnw-overview-band small{color:#64748b}.dark .vpsnw-overview-band small{color:#94a3b8}.vpsnw-overview-latency{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}.vpsnw-latency-pill{border-radius:999px;background:rgba(37,99,235,.1);color:#1d4ed8;font-size:12px;line-height:1;padding:5px 8px;white-space:nowrap}.vpsnw-latency-pill.peer{background:rgba(245,158,11,.16);color:#b45309}.dark .vpsnw-latency-pill{background:rgba(147,197,253,.16);color:#bfdbfe}.dark .vpsnw-latency-pill.peer{background:rgba(251,191,36,.18);color:#fde68a}.vpsnw-overview-empty{font-size:12px;color:#94a3b8}" +
       ".vpsnw-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 18px;padding:10px 14px 2px;font-size:13px}.vpsnw-legend span{display:inline-flex;align-items:center;gap:6px}.vpsnw-dot{width:10px;height:10px;border-radius:50%;display:inline-block}" +
       ".vpsnw-chart{position:relative;height:360px;padding:6px 14px 14px}.vpsnw-chart canvas{width:100%;height:100%;display:block}" +
       ".vpsnw-tip{display:none;position:absolute;z-index:20;min-width:160px;max-width:260px;padding:10px 12px;border:1px solid rgba(148,163,184,.35);border-radius:8px;background:rgba(255,255,255,.96);box-shadow:0 12px 28px rgba(15,23,42,.2);font-size:13px;color:#111827;pointer-events:none}.dark .vpsnw-tip{background:rgba(15,15,15,.96);color:#f8fafc}" +
       ".vpsnw-tip-time{color:#475569;margin-bottom:6px}.dark .vpsnw-tip-time{color:#cbd5e1}.vpsnw-tip-row{display:flex;align-items:center;justify-content:space-between;gap:14px;line-height:1.7}.vpsnw-tip-name{display:flex;align-items:center;gap:6px}" +
       ".vpsnw-empty{display:none;padding:22px 16px;color:#94a3b8;text-align:center;font-size:13px}" +
-      "@media(max-width:760px){.vpsnw-chart{height:300px;padding-left:8px;padding-right:8px}.vpsnw-head{grid-template-columns:1fr}.vpsnw-title,.vpsnw-server-tabs,.vpsnw-peer-label,.vpsnw-peer-row{grid-column:1;grid-row:auto}.vpsnw-tools{padding:8px}.vpsnw-date{flex:1}.vpsnw-date input{min-width:0;width:100%}}";
+      "@media(max-width:760px){.vpsnw-chart{height:300px;padding-left:8px;padding-right:8px}.vpsnw-head{grid-template-columns:1fr}.vpsnw-title,.vpsnw-server-tabs,.vpsnw-peer-label,.vpsnw-peer-row{grid-column:1;grid-row:auto}.vpsnw-tools{padding:8px}.vpsnw-date{flex:1}.vpsnw-date input{min-width:0;width:100%}.vpsnw-overview-row{grid-template-columns:1fr}.vpsnw-overview-latency{justify-content:flex-start}}";
     document.head.appendChild(style);
   }
 
@@ -98,6 +99,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       panel.innerHTML =
         '<div class="vpsnw-head"><div class="vpsnw-title">延迟</div><div class="vpsnw-server-tabs" id="vpsnw-server-tabs"></div><span class="vpsnw-peer-label">互 ping 目标</span><div class="vpsnw-peer-row"><div class="vpsnw-peer-tabs" id="vpsnw-peer-tabs"></div><span class="vpsnw-peer-note" id="vpsnw-peer-note"></span></div></div>' +
         '<div class="vpsnw-tools"><button class="vpsnw-icon-btn" id="vpsnw-prev-day" title="上一天"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M12.8 4.2a1 1 0 0 1 0 1.4L8.4 10l4.4 4.4a1 1 0 1 1-1.4 1.4l-5.1-5.1a1 1 0 0 1 0-1.4l5.1-5.1a1 1 0 0 1 1.4 0Z"/></svg></button><label class="vpsnw-date"><span class="vpsnw-muted">日期</span><input id="vpsnw-date" type="date"></label><button class="vpsnw-icon-btn" id="vpsnw-next-day" title="下一天"><svg viewBox="0 0 20 20" fill="currentColor"><path d="M7.2 15.8a1 1 0 0 1 0-1.4l4.4-4.4-4.4-4.4a1 1 0 0 1 1.4-1.4l5.1 5.1a1 1 0 0 1 0 1.4l-5.1 5.1a1 1 0 0 1-1.4 0Z"/></svg></button><div class="vpsnw-protocol"><span class="vpsnw-muted">协议</span><button class="vpsnw-chip" data-vpsnw-protocol="ICMP">ICMP</button><button class="vpsnw-chip" data-vpsnw-protocol="TCP">TCP</button></div><div class="vpsnw-tool"><span class="vpsnw-muted">显示</span><button class="vpsnw-chip" id="vpsnw-extremes">极值</button><button class="vpsnw-chip" id="vpsnw-average">平均线</button></div></div>' +
+        '<div class="vpsnw-overview" id="vpsnw-overview"></div>' +
         '<div class="vpsnw-empty" id="vpsnw-empty">暂无延迟数据</div>' +
         '<div class="vpsnw-legend" id="vpsnw-legend"></div>' +
         '<div class="vpsnw-chart"><canvas id="vpsnw-canvas"></canvas><div class="vpsnw-tip" id="vpsnw-tip"></div></div>';
@@ -128,9 +130,85 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     return { start: start, end: start + 86400000 };
   }
   function fmtMs(v) { return !isFinite(v) ? "-" : (v < 100 ? v.toFixed(2) : Math.round(v)) + "ms"; }
+  function fmtBytes(value) {
+    var n = Math.max(0, Number(value) || 0);
+    var units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+    var i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    var text = i === 0 ? String(Math.round(n)) : (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : String(Math.round(n)));
+    return text + " " + units[i];
+  }
+  function fmtRate(value) { return fmtBytes(value) + "/s"; }
   function escapeHtml(value) {
     return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
       return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];
+    });
+  }
+
+  function latestValidPoint(points) {
+    points = points || [];
+    for (var i = points.length - 1; i >= 0; i--) {
+      var p = points[i];
+      if (p && p.status !== 0 && p.delay > 0) return p;
+    }
+    return null;
+  }
+
+  function overviewLatencyItems(serverId) {
+    if (!state.data) return [];
+    return (state.data.series || []).filter(function (raw) {
+      if (String(raw.server_id) !== String(serverId)) return false;
+      if (raw.type_name !== state.protocol) return false;
+      if (raw.is_peer) {
+        if (!state.peerTargetServerId || String(raw.peer_server_id) !== String(state.peerTargetServerId)) return false;
+        if (String(raw.peer_server_id) === String(serverId)) return false;
+      }
+      return true;
+    }).map(function (raw) {
+      var point = latestValidPoint(raw.data_points);
+      if (!point) return null;
+      return {
+        name: raw.service_name || raw.target || "Ping",
+        delay: point.delay,
+        display_index: raw.display_index || 0,
+        is_peer: !!raw.is_peer
+      };
+    }).filter(Boolean).sort(function (a, b) {
+      if (a.display_index !== b.display_index) return b.display_index - a.display_index;
+      return a.name.localeCompare(b.name);
+    });
+  }
+
+  function renderOverview() {
+    var box = panel && panel.querySelector("#vpsnw-overview");
+    if (!box || !state.data) return;
+    ensureSelectedServer();
+    var servers = state.data.servers || [];
+    if (!servers.length) {
+      box.innerHTML = "";
+      return;
+    }
+    var rows = servers.map(function (server) {
+      var id = String(server.id);
+      var latencyItems = overviewLatencyItems(id);
+      var visibleLatency = latencyItems.slice(0, 5).map(function (item) {
+        return '<span class="vpsnw-latency-pill' + (item.is_peer ? " peer" : "") + '">' + escapeHtml(item.name) + " " + fmtMs(item.delay) + '</span>';
+      }).join("");
+      if (latencyItems.length > 5) {
+        visibleLatency += '<span class="vpsnw-overview-empty">+' + (latencyItems.length - 5) + '</span>';
+      }
+      if (!visibleLatency) visibleLatency = '<span class="vpsnw-overview-empty">暂无' + escapeHtml(state.protocol) + '延迟</span>';
+      var totalTransfer = (Number(server.net_in_transfer) || 0) + (Number(server.net_out_transfer) || 0);
+      var bandwidthLabel = server.bandwidth_label ? '<em class="vpsnw-band-label">' + escapeHtml(server.bandwidth_label) + '</em>' : "";
+      return '<div class="vpsnw-overview-row' + (id === String(state.selectedServerId) ? " active" : "") + '" data-vpsnw-server-row="' + escapeHtml(id) + '">' +
+        '<div class="vpsnw-overview-name"><span class="vpsnw-status-dot' + (server.online ? " online" : "") + '"></span><strong title="' + escapeHtml(server.name || "") + '">' + escapeHtml(server.name || ("VPS " + id)) + '</strong>' + bandwidthLabel + '</div>' +
+        '<div class="vpsnw-overview-band"><span>↑ ' + fmtRate(server.net_out_speed) + '</span><span>↓ ' + fmtRate(server.net_in_speed) + '</span><small>总 ' + fmtBytes(totalTransfer) + '</small></div>' +
+        '<div class="vpsnw-overview-latency">' + visibleLatency + '</div>' +
+      '</div>';
+    }).join("");
+    box.innerHTML = '<div class="vpsnw-overview-head"><b>VPS 快览</b><span>' + escapeHtml(state.protocol) + ' · 带宽 / 速率 / 总传输 / 延迟</span></div><div class="vpsnw-overview-table">' + rows + '</div>';
+    Array.prototype.forEach.call(box.querySelectorAll("[data-vpsnw-server-row]"), function (row) {
+      row.onclick = function () { selectServer(row.getAttribute("data-vpsnw-server-row")); };
     });
   }
 
@@ -212,15 +290,17 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
       btn.type = "button";
       btn.className = "vpsnw-server-btn" + (id === String(state.selectedServerId) ? " active" : "");
       btn.textContent = server.name || ("VPS " + id);
-      btn.onclick = function () {
-        state.selectedServerId = id;
-        state.hover = null;
-        try { window.localStorage.setItem("vpsnw-selected-server", id); } catch (_) {}
-        if (state.peerTargetServerId && state.peerTargetServerId !== id) startPeerWait();
-        draw();
-      };
+      btn.onclick = function () { selectServer(id); };
       box.appendChild(btn);
     });
+  }
+
+  function selectServer(id) {
+    state.selectedServerId = id;
+    state.hover = null;
+    try { window.localStorage.setItem("vpsnw-selected-server", id); } catch (_) {}
+    if (state.peerTargetServerId && state.peerTargetServerId !== id) startPeerWait();
+    draw();
   }
 
   function syncPeerState() {
@@ -482,6 +562,7 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
     syncControls();
     renderServerTabs();
     renderPeerTargets();
+    renderOverview();
     var series = aggregate();
     updatePeerNote(series);
     if (!series.length) setEmptyText(state.peerTargetServerId && state.peerTargetServerId !== state.selectedServerId && state.peerWaitUntil && Date.now() <= state.peerWaitUntil ? "采集中" : "暂无延迟数据");

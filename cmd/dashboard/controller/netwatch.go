@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 
@@ -26,9 +27,15 @@ type netwatchLatencyResponse struct {
 }
 
 type netwatchLatencyServer struct {
-	ID   uint64 `json:"id"`
-	Name string `json:"name"`
-	IP   string `json:"ip,omitempty"`
+	ID             uint64 `json:"id"`
+	Name           string `json:"name"`
+	IP             string `json:"ip,omitempty"`
+	Online         bool   `json:"online"`
+	BandwidthLabel string `json:"bandwidth_label,omitempty"`
+	NetInSpeed     uint64 `json:"net_in_speed,omitempty"`
+	NetOutSpeed    uint64 `json:"net_out_speed,omitempty"`
+	NetInTransfer  uint64 `json:"net_in_transfer,omitempty"`
+	NetOutTransfer uint64 `json:"net_out_transfer,omitempty"`
 }
 
 type netwatchLatencyService struct {
@@ -112,7 +119,20 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 			continue
 		}
 		visibleServers[id] = server
-		resp.Servers = append(resp.Servers, netwatchLatencyServer{ID: id, Name: server.Name, IP: netwatchPeerTargetIP(server, serverMap)})
+		serverInfo := netwatchLatencyServer{
+			ID:             id,
+			Name:           server.Name,
+			IP:             netwatchPeerTargetIP(server, serverMap),
+			Online:         server.TaskStream != nil,
+			BandwidthLabel: netwatchServerBandwidthLabel(server),
+		}
+		if server.State != nil {
+			serverInfo.NetInSpeed = server.State.NetInSpeed
+			serverInfo.NetOutSpeed = server.State.NetOutSpeed
+			serverInfo.NetInTransfer = server.State.NetInTransfer
+			serverInfo.NetOutTransfer = server.State.NetOutTransfer
+		}
+		resp.Servers = append(resp.Servers, serverInfo)
 	}
 	sort.Slice(resp.Servers, func(i, j int) bool { return resp.Servers[i].Name < resp.Servers[j].Name })
 
@@ -425,6 +445,58 @@ func netwatchServerIP(server *model.Server) string {
 		return server.GeoIP.IP.IPv4Addr
 	}
 	return server.GeoIP.IP.IPv6Addr
+}
+
+func netwatchServerBandwidthLabel(server *model.Server) string {
+	if server == nil {
+		return ""
+	}
+	for _, text := range []string{server.PublicNote, server.Name} {
+		if label := netwatchServerBandwidthFromText(text); label != "" {
+			return label
+		}
+	}
+	return ""
+}
+
+func netwatchServerBandwidthFromText(text string) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	lowerText := strings.ToLower(text)
+	for _, marker := range []string{"bandwidth=", "bandwidth:", "带宽=", "带宽:"} {
+		idx := strings.Index(lowerText, strings.ToLower(marker))
+		if idx < 0 {
+			continue
+		}
+		return netwatchCleanBandwidthLabel(text[idx+len(marker):], false)
+	}
+	if idx := strings.LastIndex(text, "@"); idx >= 0 {
+		return netwatchCleanBandwidthLabel(text[idx+1:], true)
+	}
+	return ""
+}
+
+func netwatchCleanBandwidthLabel(text string, stopAtSpace bool) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	end := strings.IndexFunc(text, func(r rune) bool {
+		if r == ',' || r == '，' || r == ';' || r == '；' || r == '|' || r == '/' || r == '[' || r == ']' || r == '(' || r == ')' || r == '（' || r == '）' {
+			return true
+		}
+		return stopAtSpace && unicode.IsSpace(r)
+	})
+	if end >= 0 {
+		text = text[:end]
+	}
+	text = strings.TrimSpace(text)
+	if len([]rune(text)) > 32 {
+		return ""
+	}
+	return text
 }
 
 func netwatchPeerTargetIP(server *model.Server, serverMap map[uint64]*model.Server) string {

@@ -2,8 +2,8 @@
 
 ## Supported Versions
 
-Code in `master` branch.
+Code in `main` branch.
 
 ## Reporting a Vulnerability
 
-Thank you for your contribution to open source security, please email hi@nai.ba with details of the vulnerability.
+Please report security issues privately to the repository owner, or open a GitHub security advisory when available.

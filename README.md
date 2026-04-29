@@ -1,15 +1,16 @@
 # vps-netwatch
 
-我的 VPS 网络监控面板，基于哪吒监控二次开发。
+我的 VPS 网络监控面板，用来集中看多台 VPS 的状态、流量、延迟和后续代理链路诊断。
 
 现在主要做一件事：在原来的 VPS 状态页里，加一个更方便看的延迟视图。点首页圆形按钮里的“延迟”，就在当前页面展开；再点一次收起。
 
 ## 现在有的
 
 - 多台 VPS 在线状态、CPU、内存、磁盘、流量。
-- 哪吒原来的 Web 终端和服务监控。
+- Web 终端和服务监控。
 - 默认开启 TSDB，方便保存历史数据。
 - 首页内嵌延迟图。
+- 内嵌面板里有 VPS 快览，每台机器直接显示带宽、实时速率、总传输和最新延迟。
 - 可以先选一台 VPS，默认看它到上海电信、上海联通的 ping。
 - 需要排障时，可以临时选择一台其它 VPS 做互 ping 目标。
 - 鼠标悬停看具体延迟，滚轮缩放时间，双击恢复。
@@ -44,15 +45,15 @@ apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker
 作用：保存配置、数据库和历史数据。
 
 ```bash
-mkdir -p /opt/nezha/dashboard/data
-cd /opt/nezha/dashboard
+mkdir -p /opt/vps-netwatch/dashboard/data
+cd /opt/vps-netwatch/dashboard
 ```
 
 ### 3. 写配置
 
 作用：设置监听端口、站点名和历史数据目录。
 
-`/opt/nezha/dashboard/data/config.yaml`：
+`/opt/vps-netwatch/dashboard/data/config.yaml`：
 
 ```yaml
 listen_port: 8008
@@ -74,13 +75,13 @@ tsdb:
 
 作用：指定用我的镜像启动 Dashboard。
 
-`/opt/nezha/dashboard/docker-compose.yaml`：
+`/opt/vps-netwatch/dashboard/docker-compose.yaml`：
 
 ```yaml
 services:
   dashboard:
     image: ghcr.io/yikkrrtykj/vps-netwatch:latest
-    container_name: nezha-dashboard
+    container_name: vps-netwatch-dashboard
     restart: always
     volumes:
       - ./data:/dashboard/data
@@ -93,7 +94,7 @@ services:
 ```bash
 docker compose pull
 docker compose up -d
-docker logs --tail 80 nezha-dashboard
+docker logs --tail 80 vps-netwatch-dashboard
 ```
 
 看到 `Dashboard::START ON :8008` 就说明起来了。
@@ -165,6 +166,20 @@ apt install -y curl unzip
 
 默认是关闭的，所以平时只看上海电信、上海联通。一次只会启用一个 VPS 互 ping 目标；换目标时，旧目标会自动停掉。选完后等一次采集，页面会自己刷新出曲线。
 
+### 9. 带宽标签
+
+首页内嵌面板的 VPS 快览会自动显示实时上下行和总传输。如果想像 `1Gbps`、`500Mbps` 这样显示套餐带宽，可以把服务器名称写成：
+
+```text
+香港 NHK-Lite@1Gbps
+```
+
+也可以在服务器公开备注里写：
+
+```text
+bandwidth=1Gbps
+```
+
 ## 常见问题
 
 新加的 VPS 没有延迟数据时，先看后台 `服务` 里的 `上海电信`、`上海联通`：
@@ -181,25 +196,7 @@ apt install -y curl unzip
 作用：拉最新镜像，不动数据。
 
 ```bash
-cd /opt/nezha/dashboard
-docker compose pull
-docker compose up -d
-```
-
-## 回滚
-
-作用：如果新版本有问题，先切回原版哪吒。
-
-把 compose 里的镜像改成：
-
-```yaml
-image: ghcr.io/nezhahq/nezha:latest
-```
-
-然后：
-
-```bash
-cd /opt/nezha/dashboard
+cd /opt/vps-netwatch/dashboard
 docker compose pull
 docker compose up -d
 ```

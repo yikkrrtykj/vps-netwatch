@@ -1,53 +1,80 @@
 # vps-netwatch 使用说明
 
-`vps-netwatch` 不再从零实现监控系统。这个仓库现在直接以哪吒监控为底座：先安装原版哪吒，确认多 VPS 接入、延迟图、服务监控、Web 终端这些基础能力都正常；后续再在本仓库改源码并构建自己的镜像。
+`vps-netwatch` 是一个 VPS 网络监控面板，用来集中查看多台 VPS 的在线状态、资源占用、流量、延迟和后续代理/游戏网络诊断。
 
-## 推荐路线
+## 推荐部署方式
 
-1. 主控 VPS 先安装原版哪吒 Dashboard。
-2. 其他 VPS 用哪吒后台生成的 agent 安装命令接入。
-3. 确认面板稳定后，再把 Dashboard 镜像切换成 `vps-netwatch` 自定义镜像。
-4. 之后所有功能修改都走源码提交和镜像构建，不直接改服务器里的运行文件。
+1. 主控 VPS 运行 Dashboard。
+2. 其他 VPS 使用后台生成的 Agent 安装命令接入。
+3. 所有功能修改都走源码提交和镜像构建，不直接改服务器里的运行文件。
 
-## 第一步：安装原版哪吒
+## 主控 Dashboard
 
-在主控 VPS 上运行官方安装脚本：
+在主控 VPS 准备目录：
 
 ```bash
-curl -L https://raw.githubusercontent.com/nezhahq/scripts/refs/heads/main/install.sh -o nezha.sh
-chmod +x nezha.sh
-sudo ./nezha.sh
+mkdir -p /opt/vps-netwatch/dashboard/data
+cd /opt/vps-netwatch/dashboard
 ```
 
-安装时建议选择 Docker 方式。端口可以先用默认 `8008`，没有域名也可以先用公网 IP。
+创建 `/opt/vps-netwatch/dashboard/data/config.yaml`：
 
-安装完成后访问：
+```yaml
+listen_port: 8008
+language: zh_CN
+site_name: vps-netwatch
+install_host: 主控VPS公网IP:8008
+tls: false
+
+tsdb:
+  data_path: data/tsdb
+  retention_days: 30
+  min_free_disk_space_gb: 1
+  max_memory_mb: 256
+```
+
+创建 `/opt/vps-netwatch/dashboard/docker-compose.yaml`：
+
+```yaml
+services:
+  dashboard:
+    image: ghcr.io/yikkrrtykj/vps-netwatch:latest
+    container_name: vps-netwatch-dashboard
+    restart: always
+    volumes:
+      - ./data:/dashboard/data
+    ports:
+      - "8008:8008"
+```
+
+启动：
+
+```bash
+docker compose pull
+docker compose up -d
+docker logs --tail 80 vps-netwatch-dashboard
+```
+
+访问：
 
 ```text
 http://主控VPS公网IP:8008
-```
-
-后台入口：
-
-```text
 http://主控VPS公网IP:8008/dashboard
 ```
 
-第一次登录默认账号和密码通常都是 `admin`。登录后第一件事是改强密码。
+第一次登录后先修改默认密码。
 
-## 第二步：接入其他 VPS
+## 接入其他 VPS
 
-进入哪吒后台的服务器页面，复制面板生成的安装命令，在每台 VPS 上运行。新的 VPS 不需要提前写进本仓库；agent 连上后会自动出现在面板里。
+进入后台的服务器页面，添加服务器并复制 Agent 安装命令，在每台 VPS 上执行。新的 VPS 不需要提前写进本仓库；Agent 连上后会自动出现在面板里。
 
-如果你有域名，建议在后台把 Agent 连接地址设置成不走 CDN 的域名或 `公网IP:8008`。如果暂时没有域名，就先用：
+如果你有域名，建议把 Agent 连接地址设置成不走 CDN 的域名或 `公网IP:8008`。如果暂时没有域名，就先用：
 
 ```text
 主控VPS公网IP:8008
 ```
 
-## 第三步：构建 vps-netwatch 镜像
-
-这个仓库已经是哪吒源码树。后续要改功能时，直接改这里的 Go、前端模板或配置，然后推送到 GitHub。
+## 镜像构建
 
 推送到 `main` 后，GitHub Actions 会构建并推送：
 
@@ -62,68 +89,42 @@ ghcr.io/yikkrrtykj/vps-netwatch:latest
 ghcr.io/yikkrrtykj/vps-netwatch:v1.0.0
 ```
 
-## 第四步：把主控切到自定义镜像
-
-原版哪吒 Docker 安装后，配置一般在：
-
-```text
-/opt/nezha/dashboard/docker-compose.yaml
-/opt/nezha/dashboard/data/config.yaml
-```
-
-把 `/opt/nezha/dashboard/docker-compose.yaml` 里的镜像改成：
-
-```yaml
-image: ghcr.io/yikkrrtykj/vps-netwatch:latest
-```
-
-然后重启：
-
-```bash
-cd /opt/nezha/dashboard
-sudo docker compose pull
-sudo docker compose up -d
-```
-
-如果要回滚原版，把镜像改回：
-
-```yaml
-image: ghcr.io/nezhahq/nezha:latest
-```
-
-再执行同样的 `pull` 和 `up -d`。
-
-## 本仓库的自定义方向
-
-第一阶段先保持哪吒原功能稳定，不急着大改。
-
-后续再逐步加：
-
-- mihomo/Clash external-controller 只读数据源。
-- 游戏服务器目标 IP 观察和延迟诊断。
-- 每台 VPS 的出口 IP/ASN/地区检测。
-- 面板里增加代理链路、规则命中、连接目标的排障视图。
-
-原则是：VPS 监控、Web 终端、服务监控、延迟图这些成熟能力继续用哪吒；`vps-netwatch` 只补你需要的代理和游戏网络诊断。
-
 ## 自定义延迟面板
 
-本仓库把自定义 Ping 延迟能力合并到首页概览里的内嵌延迟面板。进入首页后点击圆形的延迟图标，就能展开面板。
+首页圆形按钮里的延迟图标会展开内嵌 Ping 面板。
 
 当前能力：
 
+- VPS 快览：每台机器直接显示带宽标签、实时速率、总传输和最新延迟。
 - 选择日期查看当天延迟历史。
 - 在 ICMP 和 TCP Ping 监控之间切换。
 - 勾选显示极值标签，默认关闭。
 - 勾选显示平均线，默认关闭。
+- 临时选择一台其它 VPS 做互 ping 目标。
 
-## 同步上游
+带宽标签可以写在服务器名称里：
 
-本地仓库保留了 `upstream` remote：
-
-```bash
-git fetch upstream master
-git merge upstream/master
+```text
+香港 NHK-Lite@1Gbps
 ```
 
-同步前先确认自己的改动已经提交。遇到冲突时，优先保留哪吒上游的监控主逻辑，再重新套我们的自定义功能。
+也可以写在服务器公开备注里：
+
+```text
+bandwidth=1Gbps
+```
+
+## 后续方向
+
+- 目标添加向导：输入 `IP` 自动创建 ICMP，输入 `IP:端口` 自动创建 TCP。
+- 游戏服务器目标 IP 观察和延迟诊断。
+- 每台 VPS 的出口 IP/ASN/地区检测。
+- 代理链路、规则命中、连接目标排障视图。
+
+## 更新
+
+```bash
+cd /opt/vps-netwatch/dashboard
+docker compose pull
+docker compose up -d
+```

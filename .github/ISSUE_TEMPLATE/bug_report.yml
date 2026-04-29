@@ -1,5 +1,5 @@
 name: Bug Report
-description: File a bug report about nezha.
+description: File a bug report about vps-netwatch.
 
 body:
   - type: input
@@ -11,8 +11,8 @@ body:
       required: true
   - type: input
     attributes:
-      label: Nezha Version
-      description: Input the version of your copy of nezha here.
+      label: vps-netwatch Version
+      description: Input the version or image tag of your vps-netwatch deployment here.
     validations:
       required: true
   - type: textarea
@@ -49,7 +49,7 @@ body:
     attributes:
       label: Validation
       options:
-        - label: I confirm this is a bug about nezha (Nezha Dashboard).
+        - label: I confirm this is a bug about vps-netwatch.
           required: true
-        - label: I have searched Issues and confirm this bug has been reported before.
+        - label: I have searched Issues and confirm this bug has not been reported before.
           required: true
