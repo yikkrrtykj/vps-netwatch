@@ -38,7 +38,7 @@ func listConfig(c *gin.Context) (*model.SettingResponse, error) {
 			Oauth2Providers:                config.Oauth2Providers,
 		},
 		Version:           singleton.Version,
-		FrontendTemplates: singleton.FrontendTemplates,
+		FrontendTemplates: netwatchDisplayFrontendTemplates(singleton.FrontendTemplates),
 		TSDBEnabled:       singleton.TSDBEnabled(),
 	}
 
@@ -60,6 +60,26 @@ func listConfig(c *gin.Context) (*model.SettingResponse, error) {
 	}
 
 	return &conf, nil
+}
+
+func netwatchDisplayFrontendTemplates(templates []model.FrontendTemplate) []model.FrontendTemplate {
+	display := make([]model.FrontendTemplate, len(templates))
+	copy(display, templates)
+	for i := range display {
+		switch display[i].Path {
+		case "admin-dist":
+			display[i].Name = "vps-netwatch Admin"
+		case "user-dist":
+			display[i].Name = "vps-netwatch"
+		case "nazhua-dist":
+			display[i].Name = "vps-netwatch Alt"
+		case "nezha-ascii-dist":
+			display[i].Name = "vps-netwatch ASCII"
+		}
+		display[i].Repository = "https://github.com/yikkrrtykj/vps-netwatch"
+		display[i].Author = "yikkrrtykj"
+	}
+	return display
 }
 
 // Edit config
