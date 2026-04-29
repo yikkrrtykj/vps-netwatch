@@ -165,7 +165,7 @@ func (ns *NotificationServerBundle) replaceParamsInString(str string, message st
 	}
 
 	replacements := []string{
-		"#NEZHA#", mod(message),
+		"#VPS_NETWATCH#", mod(message),
 		"#DATETIME#", mod(time.Now().In(ns.Loc).String()),
 	}
 

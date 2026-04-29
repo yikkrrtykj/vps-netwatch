@@ -95,7 +95,7 @@ ghcr.io/yikkrrtykj/vps-netwatch:v1.0.0
 
 当前能力：
 
-- VPS 快览：每台机器直接显示带宽标签、实时速率、总传输和最新延迟。
+- VPS 快览：每台机器下方直接显示最新延迟，也可以显示带宽和剩余时间，不显示价格。
 - 目标向导：输入 `IP/域名` 自动创建 ICMP，输入 `IP:端口` 自动创建 TCP。
 - 异常标记：自动提示峰值、持续抖动和丢包区间。
 - mihomo/Clash 连接发现：读取 `/connections` 后可以把连接目标一键加入监控。
@@ -115,6 +115,13 @@ ghcr.io/yikkrrtykj/vps-netwatch:v1.0.0
 
 ```text
 bandwidth=1Gbps
+```
+
+如果想在带宽旁边显示剩余时间，可以在服务器公开备注里写：
+
+```text
+expire=2026-05-20
+remaining=22d
 ```
 
 目标向导示例：

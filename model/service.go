@@ -127,7 +127,7 @@ func (m *Service) AfterFind(tx *gorm.DB) error {
 	if skipServersRaw == "" || skipServersRaw == "null" {
 		m.SkipServersRaw = "{}"
 	} else if err := json.Unmarshal([]byte(m.SkipServersRaw), &m.SkipServers); err != nil {
-		log.Println("NEZHA>> Service.AfterFind:", err)
+		log.Println("VPS-NETWATCH>> Service.AfterFind:", err)
 		return nil
 	}
 

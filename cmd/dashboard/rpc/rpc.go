@@ -68,7 +68,7 @@ func getRealIp(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler
 	}
 
 	if singleton.Conf.Debug {
-		log.Printf("NEZHA>> gRPC Agent Real IP: %s, connecting IP: %s\n", ip, connectingIp)
+		log.Printf("VPS-NETWATCH>> gRPC Agent Real IP: %s, connecting IP: %s\n", ip, connectingIp)
 	}
 
 	ctx = context.WithValue(ctx, model.CtxKeyRealIP{}, ip)
@@ -125,14 +125,14 @@ func sendTaskToServer(task *model.Service, server *model.Server) {
 	select {
 	case err := <-done:
 		if err != nil {
-			log.Printf("NEZHA>> Send service task %d to server %d failed: %v", task.ID, server.ID, err)
+			log.Printf("VPS-NETWATCH>> Send service task %d to server %d failed: %v", task.ID, server.ID, err)
 		} else if singleton.Conf.Debug {
-			log.Printf("NEZHA>> Sent service task %d to server %d", task.ID, server.ID)
+			log.Printf("VPS-NETWATCH>> Sent service task %d to server %d", task.ID, server.ID)
 		}
 	case <-stream.Context().Done():
-		log.Printf("NEZHA>> Send service task %d to server %d canceled: %v", task.ID, server.ID, stream.Context().Err())
+		log.Printf("VPS-NETWATCH>> Send service task %d to server %d canceled: %v", task.ID, server.ID, stream.Context().Err())
 	case <-time.After(3 * time.Second):
-		log.Printf("NEZHA>> Send service task %d to server %d timed out", task.ID, server.ID)
+		log.Printf("VPS-NETWATCH>> Send service task %d to server %d timed out", task.ID, server.ID)
 	}
 }
 

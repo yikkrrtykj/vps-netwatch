@@ -54,7 +54,7 @@ func ShowBlockPage(c *gin.Context, err error) {
 	if err != nil {
 		errMsg = err.Error()
 	} else {
-		errMsg = "you were blocked by nezha WAF"
+		errMsg = "you were blocked by vps-netwatch WAF"
 	}
 	c.Writer.WriteHeader(http.StatusForbidden)
 	c.Header("Content-Type", "text/html; charset=utf-8")

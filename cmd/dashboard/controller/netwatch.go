@@ -37,6 +37,7 @@ type netwatchLatencyServer struct {
 	IP             string `json:"ip,omitempty"`
 	Online         bool   `json:"online"`
 	BandwidthLabel string `json:"bandwidth_label,omitempty"`
+	RemainingLabel string `json:"remaining_label,omitempty"`
 	NetInSpeed     uint64 `json:"net_in_speed,omitempty"`
 	NetOutSpeed    uint64 `json:"net_out_speed,omitempty"`
 	NetInTransfer  uint64 `json:"net_in_transfer,omitempty"`
@@ -168,6 +169,7 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 			IP:             netwatchPeerTargetIP(server, serverMap),
 			Online:         server.TaskStream != nil,
 			BandwidthLabel: netwatchServerBandwidthLabel(server),
+			RemainingLabel: netwatchServerRemainingLabel(server),
 		}
 		if server.State != nil {
 			serverInfo.NetInSpeed = server.State.NetInSpeed
@@ -840,6 +842,19 @@ func netwatchServerBandwidthLabel(server *model.Server) string {
 	return ""
 }
 
+func netwatchServerRemainingLabel(server *model.Server) string {
+	if server == nil {
+		return ""
+	}
+	now := time.Now()
+	for _, text := range []string{server.PublicNote, server.Name} {
+		if label := netwatchServerRemainingFromText(text, now); label != "" {
+			return label
+		}
+	}
+	return ""
+}
+
 func netwatchServerBandwidthFromText(text string) string {
 	text = strings.TrimSpace(text)
 	if text == "" {
@@ -878,6 +893,149 @@ func netwatchCleanBandwidthLabel(text string, stopAtSpace bool) string {
 		return ""
 	}
 	return text
+}
+
+func netwatchServerRemainingFromText(text string, now time.Time) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	type marker struct {
+		text       string
+		isDuration bool
+	}
+	markers := []marker{
+		{text: "remaining=", isDuration: true},
+		{text: "remaining:", isDuration: true},
+		{text: "remain=", isDuration: true},
+		{text: "remain:", isDuration: true},
+		{text: "days=", isDuration: true},
+		{text: "days:", isDuration: true},
+		{text: "剩余=", isDuration: true},
+		{text: "剩余:", isDuration: true},
+		{text: "expire="},
+		{text: "expire:"},
+		{text: "expires="},
+		{text: "expires:"},
+		{text: "expiry="},
+		{text: "expiry:"},
+		{text: "到期="},
+		{text: "到期:"},
+		{text: "有效期="},
+		{text: "有效期:"},
+	}
+	lowerText := strings.ToLower(text)
+	for _, marker := range markers {
+		idx := strings.Index(lowerText, strings.ToLower(marker.text))
+		if idx < 0 {
+			continue
+		}
+		token := netwatchCleanMetadataToken(text[idx+len(marker.text):])
+		if token == "" {
+			continue
+		}
+		if label := netwatchRemainingTokenLabel(token, marker.isDuration, now); label != "" {
+			return label
+		}
+	}
+	return ""
+}
+
+func netwatchCleanMetadataToken(text string) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	end := strings.IndexFunc(text, func(r rune) bool {
+		return r == ',' || r == '，' || r == ';' || r == '；' || r == '|' || r == '[' || r == ']' || r == '(' || r == ')' || r == '（' || r == '）' || unicode.IsSpace(r)
+	})
+	if end >= 0 {
+		text = text[:end]
+	}
+	return strings.TrimSpace(text)
+}
+
+func netwatchRemainingTokenLabel(token string, durationToken bool, now time.Time) string {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return ""
+	}
+	lowerToken := strings.ToLower(token)
+	if strings.Contains(lowerToken, "永久") || strings.Contains(lowerToken, "permanent") || strings.Contains(lowerToken, "forever") {
+		return "永久"
+	}
+	if days, ok := netwatchRemainingDaysFromToken(lowerToken, durationToken); ok {
+		return netwatchFormatRemainingDays(days)
+	}
+	normalized := strings.NewReplacer("/", "-", ".", "-").Replace(token)
+	for _, layout := range []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02T15:04:05",
+		"2006-01-02",
+		"2006-1-2",
+	} {
+		expireAt, err := time.ParseInLocation(layout, normalized, time.Local)
+		if err != nil {
+			continue
+		}
+		if layout == "2006-01-02" || layout == "2006-1-2" {
+			expireAt = expireAt.Add(24*time.Hour - time.Nanosecond)
+		}
+		remaining := expireAt.Sub(now)
+		if remaining < 0 {
+			return "已到期"
+		}
+		days := int(remaining / (24 * time.Hour))
+		if remaining%(24*time.Hour) > 0 {
+			days++
+		}
+		return netwatchFormatRemainingDays(days)
+	}
+	return ""
+}
+
+func netwatchRemainingDaysFromToken(token string, durationToken bool) (int, bool) {
+	n, ok := netwatchLeadingInt(token)
+	if !ok {
+		return 0, false
+	}
+	if durationToken || strings.Contains(token, "天") || strings.Contains(token, "day") || strings.HasSuffix(token, "d") {
+		return n, true
+	}
+	return 0, false
+}
+
+func netwatchLeadingInt(text string) (int, bool) {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return 0, false
+	}
+	end := 0
+	for _, r := range text {
+		if !unicode.IsDigit(r) {
+			break
+		}
+		end += len(string(r))
+	}
+	if end == 0 {
+		return 0, false
+	}
+	n, err := strconv.Atoi(text[:end])
+	if err != nil {
+		return 0, false
+	}
+	return n, true
+}
+
+func netwatchFormatRemainingDays(days int) string {
+	if days < 0 {
+		return "已到期"
+	}
+	if days == 0 {
+		return "今天到期"
+	}
+	return fmt.Sprintf("余 %d 天", days)
 }
 
 func netwatchPeerTargetIP(server *model.Server, serverMap map[uint64]*model.Server) string {

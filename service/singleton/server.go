@@ -53,7 +53,7 @@ func (c *ServerClass) Update(s *model.Server, uuid string) {
 
 	if s.EnableDDNS {
 		if err := c.UpdateDDNS(s, nil); err != nil {
-			log.Printf("NEZHA>> Failed to update DDNS for server %d: %v", err, s.ID)
+			log.Printf("VPS-NETWATCH>> Failed to update DDNS for server %d: %v", err, s.ID)
 		}
 	}
 

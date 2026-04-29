@@ -38,7 +38,7 @@ func InitTSDB() error {
 	}
 
 	if !config.Enabled() {
-		log.Println("NEZHA>> TSDB is disabled (tsdb.data_path not configured)")
+		log.Println("VPS-NETWATCH>> TSDB is disabled (tsdb.data_path not configured)")
 		if DB != nil {
 			return DB.AutoMigrate(model.ServiceHistory{})
 		}
@@ -51,12 +51,12 @@ func InitTSDB() error {
 		return err
 	}
 
-	log.Println("NEZHA>> TSDB initialized successfully")
+	log.Println("VPS-NETWATCH>> TSDB initialized successfully")
 
 	if DB != nil && DB.Migrator().HasTable("service_histories") {
-		log.Println("NEZHA>> Dropping legacy service_histories table (TSDB is now enabled). Historical data will NOT be migrated.")
+		log.Println("VPS-NETWATCH>> Dropping legacy service_histories table (TSDB is now enabled). Historical data will NOT be migrated.")
 		if err := DB.Migrator().DropTable("service_histories"); err != nil {
-			log.Printf("NEZHA>> Warning: failed to drop service_histories table: %v", err)
+			log.Printf("VPS-NETWATCH>> Warning: failed to drop service_histories table: %v", err)
 		}
 	}
 

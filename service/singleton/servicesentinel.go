@@ -124,7 +124,7 @@ func NewServiceSentinel(serviceSentinelDispatchBus chan<- *model.Service) (*Serv
 	// 每周日凌晨 4:00 执行系统存储维护
 	_, err = CronShared.AddFunc("0 0 4 * * 0", PerformMaintenance)
 	if err != nil {
-		log.Printf("NEZHA>> Warning: failed to schedule maintenance task: %v", err)
+		log.Printf("VPS-NETWATCH>> Warning: failed to schedule maintenance task: %v", err)
 	}
 
 	return ss, nil
@@ -197,7 +197,7 @@ func (ss *ServiceSentinel) loadServiceHistory() error {
 		// 通过cron定时将服务监控任务传递给任务调度管道
 		service.CronJobID, err = CronShared.AddFunc(task.CronSpec(), func() {
 			if Conf.Debug {
-				log.Printf("NEZHA>> Queue service task %d (%s)", task.ID, task.Name)
+				log.Printf("VPS-NETWATCH>> Queue service task %d (%s)", task.ID, task.Name)
 			}
 			ss.dispatchBus <- task
 		})
@@ -239,7 +239,7 @@ func (ss *ServiceSentinel) loadMonthlyStatusFromTSDB(services []*model.Service, 
 	for _, service := range services {
 		dailyStats, err := TSDBShared.QueryServiceDailyStats(service.ID, today, 30)
 		if err != nil {
-			log.Printf("NEZHA>> Failed to load TSDB history for service %d: %v", service.ID, err)
+			log.Printf("VPS-NETWATCH>> Failed to load TSDB history for service %d: %v", service.ID, err)
 			continue
 		}
 		ms := ss.monthlyStatus[service.ID]
@@ -283,7 +283,7 @@ func (ss *ServiceSentinel) loadTodayStats(today time.Time) {
 		for serviceID, ms := range ss.monthlyStatus {
 			result, err := TSDBShared.QueryServiceHistory(serviceID, tsdb.Period1Day)
 			if err != nil {
-				log.Printf("NEZHA>> Failed to load TSDB today stats for service %d: %v", serviceID, err)
+				log.Printf("VPS-NETWATCH>> Failed to load TSDB today stats for service %d: %v", serviceID, err)
 				continue
 			}
 			var totalUp, totalDown uint64
@@ -336,7 +336,7 @@ func (ss *ServiceSentinel) Update(m *model.Service) error {
 	// 写入新任务
 	m.CronJobID, err = CronShared.AddFunc(m.CronSpec(), func() {
 		if Conf.Debug {
-			log.Printf("NEZHA>> Queue service task %d (%s)", m.ID, m.Name)
+			log.Printf("VPS-NETWATCH>> Queue service task %d (%s)", m.ID, m.Name)
 		}
 		ss.dispatchBus <- m
 	})
@@ -484,14 +484,14 @@ func (ss *ServiceSentinel) worker() {
 	for r := range ss.serviceReportChannel {
 		css, _ := ss.Get(r.Data.GetId())
 		if css == nil || css.ID == 0 {
-			log.Printf("NEZHA>> Incorrect service monitor report %+v", r)
+			log.Printf("VPS-NETWATCH>> Incorrect service monitor report %+v", r)
 			continue
 		}
 		css = nil
 
 		mh := r.Data
 		if Conf.Debug {
-			log.Printf("NEZHA>> Service report task %d from server %d success=%v delay=%.2f", mh.GetId(), r.Reporter, mh.GetSuccessful(), mh.GetDelay())
+			log.Printf("VPS-NETWATCH>> Service report task %d from server %d success=%v delay=%.2f", mh.GetId(), r.Reporter, mh.GetSuccessful(), mh.GetDelay())
 		}
 		if mh.Type == model.TaskTypeTCPPing || mh.Type == model.TaskTypeICMPPing {
 			// TCP/ICMP Ping 使用平均值计算后再写入
@@ -518,7 +518,7 @@ func (ss *ServiceSentinel) worker() {
 						Delay:      ts.ping,
 						Successful: ts.successCount*2 >= ts.count,
 					}); err != nil {
-						log.Printf("NEZHA>> Failed to save service monitor metrics to TSDB: %v", err)
+						log.Printf("VPS-NETWATCH>> Failed to save service monitor metrics to TSDB: %v", err)
 					}
 				} else {
 					if err := DB.Create(&model.ServiceHistory{
@@ -527,7 +527,7 @@ func (ss *ServiceSentinel) worker() {
 						Data:      mh.Data,
 						ServerID:  r.Reporter,
 					}).Error; err != nil {
-						log.Printf("NEZHA>> Failed to save service monitor metrics: %v", err)
+						log.Printf("VPS-NETWATCH>> Failed to save service monitor metrics: %v", err)
 					}
 				}
 				ts.count = 0
@@ -544,7 +544,7 @@ func (ss *ServiceSentinel) worker() {
 					Delay:      float64(mh.Delay),
 					Successful: mh.Successful,
 				}); err != nil {
-					log.Printf("NEZHA>> Failed to save service monitor metrics to TSDB: %v", err)
+					log.Printf("VPS-NETWATCH>> Failed to save service monitor metrics to TSDB: %v", err)
 				}
 			}
 		}
@@ -610,7 +610,7 @@ func (ss *ServiceSentinel) worker() {
 					Up:        rd.Up,
 					Down:      rd.Down,
 				}).Error; err != nil {
-					log.Printf("NEZHA>> Failed to save service monitor metrics: %v", err)
+					log.Printf("VPS-NETWATCH>> Failed to save service monitor metrics: %v", err)
 				}
 			}
 			ss.serviceCurrentStatusData[mh.GetId()].result = ss.serviceCurrentStatusData[mh.GetId()].result[:0]

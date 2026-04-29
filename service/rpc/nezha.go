@@ -50,7 +50,7 @@ func (s *NezhaHandler) RequestTask(stream pb.NezhaService_RequestTaskServer) err
 	for {
 		result, err = stream.Recv()
 		if err != nil {
-			log.Printf("NEZHA>> RequestTask error: %v, clientID: %d\n", err, clientID)
+			log.Printf("VPS-NETWATCH>> RequestTask error: %v, clientID: %d\n", err, clientID)
 			return err
 		}
 		switch result.GetType() {
@@ -102,7 +102,7 @@ func (s *NezhaHandler) ReportSystemState(stream pb.NezhaService_ReportSystemStat
 	for {
 		state, err = stream.Recv()
 		if err != nil {
-			log.Printf("NEZHA>> ReportSystemState error: %v, clientID: %d\n", err, clientID)
+			log.Printf("VPS-NETWATCH>> ReportSystemState error: %v, clientID: %d\n", err, clientID)
 			return err
 		}
 		innerState := model.PB2State(state)
@@ -149,7 +149,7 @@ func (s *NezhaHandler) ReportSystemState(stream pb.NezhaService_ReportSystemStat
 				Uptime:         innerState.Uptime,
 				GPU:            maxGPU,
 			}); err != nil {
-				log.Printf("NEZHA>> Failed to write server metrics to TSDB: %v", err)
+				log.Printf("VPS-NETWATCH>> Failed to write server metrics to TSDB: %v", err)
 			}
 		}
 
@@ -216,7 +216,7 @@ func (s *NezhaHandler) IOStream(stream pb.NezhaService_IOStreamServer) error {
 		return err
 	}
 
-	// ff05ff05 是 Nezha 的魔数，用于标识流 ID
+	// ff05ff05 是 Agent 协议的魔数，用于标识流 ID
 	if id == nil || len(id.Data) < 4 || (id.Data[0] != 0xff && id.Data[1] != 0x05 && id.Data[2] != 0xff && id.Data[3] == 0x05) {
 		return fmt.Errorf("invalid stream id")
 	}
@@ -224,7 +224,7 @@ func (s *NezhaHandler) IOStream(stream pb.NezhaService_IOStreamServer) error {
 	go func() {
 		for {
 			if err := stream.Send(&pb.IOStreamData{Data: []byte{}}); err != nil {
-				log.Printf("NEZHA>> IOStream keepAlive error: %v\n", err)
+				log.Printf("VPS-NETWATCH>> IOStream keepAlive error: %v\n", err)
 				return
 			}
 			time.Sleep(time.Second * 30)
@@ -276,7 +276,7 @@ func (s *NezhaHandler) ReportGeoIP(c context.Context, r *pb.GeoIP) (*pb.GeoIP, e
 		ipv6 := geoip.IP.IPv6Addr
 
 		if err := singleton.ServerShared.UpdateDDNS(server, &model.IP{IPv4Addr: ipv4, IPv6Addr: ipv6}); err != nil {
-			log.Printf("NEZHA>> Failed to update DDNS for server %d: %v", err, server.ID)
+			log.Printf("VPS-NETWATCH>> Failed to update DDNS for server %d: %v", err, server.ID)
 		}
 	}
 
@@ -309,7 +309,7 @@ func (s *NezhaHandler) ReportGeoIP(c context.Context, r *pb.GeoIP) (*pb.GeoIP, e
 	netIP := net.ParseIP(ip)
 	location, err := geoipx.Lookup(netIP)
 	if err != nil {
-		log.Printf("NEZHA>> geoip.Lookup: %v", err)
+		log.Printf("VPS-NETWATCH>> geoip.Lookup: %v", err)
 	}
 	geoip.CountryCode = location
 

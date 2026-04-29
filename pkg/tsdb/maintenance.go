@@ -11,7 +11,7 @@ func (db *TSDB) Maintenance() {
 		return
 	}
 
-	log.Println("NEZHA>> TSDB starting maintenance (flush)...")
+	log.Println("VPS-NETWATCH>> TSDB starting maintenance (flush)...")
 	db.storage.DebugFlush()
-	log.Println("NEZHA>> TSDB maintenance completed")
+	log.Println("VPS-NETWATCH>> TSDB maintenance completed")
 }

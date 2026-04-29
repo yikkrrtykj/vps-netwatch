@@ -78,14 +78,13 @@ func initSystem(bus chan<- *model.Service) error {
 	return nil
 }
 
-// @title           Nezha Monitoring API
+// @title           vps-netwatch API
 // @version         1.0
-// @description     Nezha Monitoring API
-// @termsOfService  http://nezhahq.github.io
+// @description     VPS network monitoring API
+// @termsOfService  https://github.com/yikkrrtykj/vps-netwatch
 
-// @contact.name   API Support
-// @contact.url    http://nezhahq.github.io
-// @contact.email  hi@nai.ba
+// @contact.name   vps-netwatch
+// @contact.url    https://github.com/yikkrrtykj/vps-netwatch
 
 // @license.name  Apache 2.0
 // @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
@@ -117,7 +116,7 @@ func main() {
 		func() error {
 			if singleton.Conf.Memory.GoMemLimitMB > 0 {
 				debug.SetMemoryLimit(singleton.Conf.Memory.GoMemLimitMB * 1024 * 1024)
-				log.Printf("NEZHA>> Go memory limit set to %d MB", singleton.Conf.Memory.GoMemLimitMB)
+				log.Printf("VPS-NETWATCH>> Go memory limit set to %d MB", singleton.Conf.Memory.GoMemLimitMB)
 			}
 			return nil
 		},
@@ -166,32 +165,32 @@ func main() {
 	errHTTPS := errors.New("error from https server")
 
 	if err := graceful.Graceful(func() error {
-		log.Printf("NEZHA>> Dashboard::START ON %s:%d", singleton.Conf.ListenHost, singleton.Conf.ListenPort)
+		log.Printf("VPS-NETWATCH>> Dashboard::START ON %s:%d", singleton.Conf.ListenHost, singleton.Conf.ListenPort)
 		if singleton.Conf.HTTPS.ListenPort != 0 {
 			go func() {
 				errChan <- muxServerHTTPS.ListenAndServeTLS(singleton.Conf.HTTPS.TLSCertPath, singleton.Conf.HTTPS.TLSKeyPath)
 			}()
-			log.Printf("NEZHA>> Dashboard::START ON %s:%d", singleton.Conf.ListenHost, singleton.Conf.HTTPS.ListenPort)
+			log.Printf("VPS-NETWATCH>> Dashboard::START ON %s:%d", singleton.Conf.ListenHost, singleton.Conf.HTTPS.ListenPort)
 		}
 		go func() {
 			errChan <- muxServerHTTP.Serve(l)
 		}()
 		return <-errChan
 	}, func(c context.Context) error {
-		log.Println("NEZHA>> Graceful::START")
+		log.Println("VPS-NETWATCH>> Graceful::START")
 		singleton.RecordTransferHourlyUsage()
 		singleton.CloseTSDB()
-		log.Println("NEZHA>> Graceful::END")
+		log.Println("VPS-NETWATCH>> Graceful::END")
 		var err error
 		if muxServerHTTPS != nil {
 			err = muxServerHTTPS.Shutdown(c)
 		}
 		return errors.Join(muxServerHTTP.Shutdown(c), utils.IfOr(err != nil, utils.NewWrapError(errHTTPS, err), nil))
 	}); err != nil {
-		log.Printf("NEZHA>> ERROR: %v", err)
+		log.Printf("VPS-NETWATCH>> ERROR: %v", err)
 		var wrapError *utils.WrapError
 		if errors.As(err, &wrapError) {
-			log.Printf("NEZHA>> ERROR HTTPS: %v", wrapError.Unwrap())
+			log.Printf("VPS-NETWATCH>> ERROR HTTPS: %v", wrapError.Unwrap())
 		}
 	}
 

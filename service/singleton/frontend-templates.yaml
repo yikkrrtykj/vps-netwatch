@@ -17,7 +17,7 @@
   author: "hi2hi"
   version: "v0.9.1"
 - path: "nezha-ascii-dist"
-  name: "Nezha-ASCII"
+  name: "vps-netwatch ASCII"
   repository: "https://github.com/hamster1963/nezha-ascii"
   author: "hamster1963"
   version: "v1.1.0"

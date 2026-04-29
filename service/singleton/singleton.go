@@ -128,7 +128,7 @@ func RecordTransferHourlyUsage(servers ...*model.Server) {
 	if len(txs) == 0 {
 		return
 	}
-	log.Printf("NEZHA>> Saved traffic metrics to database. Affected %d row(s), Error: %v", len(txs), DB.Create(txs).Error)
+	log.Printf("VPS-NETWATCH>> Saved traffic metrics to database. Affected %d row(s), Error: %v", len(txs), DB.Create(txs).Error)
 }
 
 // CleanMonitorHistory 清理流量记录（TSDB 有自己的保留策略）
@@ -177,15 +177,15 @@ func CleanMonitorHistory() {
 
 // PerformMaintenance 执行系统维护（SQLite VACUUM 和 TSDB 维护）
 func PerformMaintenance() {
-	log.Println("NEZHA>> Starting system maintenance...")
+	log.Println("VPS-NETWATCH>> Starting system maintenance...")
 
 	// 1. SQLite 维护
 	if DB != nil {
-		log.Println("NEZHA>> SQLite: Starting VACUUM...")
+		log.Println("VPS-NETWATCH>> SQLite: Starting VACUUM...")
 		if err := DB.Exec("VACUUM").Error; err != nil {
-			log.Printf("NEZHA>> SQLite: VACUUM failed: %v", err)
+			log.Printf("VPS-NETWATCH>> SQLite: VACUUM failed: %v", err)
 		} else {
-			log.Println("NEZHA>> SQLite: VACUUM completed")
+			log.Println("VPS-NETWATCH>> SQLite: VACUUM completed")
 		}
 	}
 
@@ -194,7 +194,7 @@ func PerformMaintenance() {
 		TSDBShared.Maintenance()
 	}
 
-	log.Println("NEZHA>> System maintenance completed")
+	log.Println("VPS-NETWATCH>> System maintenance completed")
 }
 
 // IPDesensitize 根据设置选择是否对IP进行打码处理 返回处理后的IP(关闭打码则返回原IP)

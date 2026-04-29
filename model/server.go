@@ -65,7 +65,7 @@ func (s *Server) AfterFind(tx *gorm.DB) error {
 		s.DDNSProfilesRaw = "[]"
 	} else {
 		if err := json.Unmarshal([]byte(s.DDNSProfilesRaw), &s.DDNSProfiles); err != nil {
-			log.Println("NEZHA>> Server.AfterFind:", err)
+			log.Println("VPS-NETWATCH>> Server.AfterFind:", err)
 			return nil
 		}
 	}
@@ -79,7 +79,7 @@ func (s *Server) AfterFind(tx *gorm.DB) error {
 		s.OverrideDDNSDomainsRaw = "{}"
 	} else {
 		if err := json.Unmarshal([]byte(s.OverrideDDNSDomainsRaw), &s.OverrideDDNSDomains); err != nil {
-			log.Println("NEZHA>> Server.AfterFind:", err)
+			log.Println("VPS-NETWATCH>> Server.AfterFind:", err)
 			return nil
 		}
 	}
