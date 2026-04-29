@@ -1,0 +1,10 @@
+services:
+  dashboard:
+    image: ghcr.io/yikkrrtykj/vps-netwatch:latest
+    container_name: vps-netwatch-dashboard
+    restart: always
+    volumes:
+      - ./data:/dashboard/data
+      - ./deploy/user-dist:/dashboard/user-dist:ro
+    ports:
+      - "8008:8008"
