@@ -17,6 +17,19 @@ func netwatchShouldRewriteUserAsset(filePath string) bool {
 	return filePath == singleton.Conf.UserTemplate+"/manifest.json"
 }
 
+func netwatchCanServeUserIndex(content []byte) bool {
+	html := strings.TrimSpace(string(content))
+	if html == "" {
+		return false
+	}
+	lower := strings.ToLower(html)
+	return strings.Contains(lower, "<!doctype") ||
+		strings.Contains(lower, "<html") ||
+		strings.Contains(lower, "<body") ||
+		strings.Contains(lower, "<div") ||
+		strings.Contains(lower, "<script")
+}
+
 func netwatchServeInjectedUserIndex(c *gin.Context, statusCode int, content []byte) {
 	html := netwatchHardenUserIndex(netwatchApplyUserBranding(string(content)))
 	scripts := ""

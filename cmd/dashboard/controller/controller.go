@@ -302,10 +302,17 @@ func getUid(c *gin.Context) uint64 {
 
 func fallbackToFrontend(frontendDist fs.FS) func(*gin.Context) {
 	checkLocalFileOrFs := func(c *gin.Context, fs fs.FS, path string, customStatusCode int) bool {
-		if _, err := os.Stat(path); err == nil {
+		if fileStat, err := os.Stat(path); err == nil {
+			if fileStat.IsDir() {
+				return false
+			}
 			if netwatchShouldInjectUserIndex(path) {
 				content, err := os.ReadFile(path)
 				if err == nil {
+					if !netwatchCanServeUserIndex(content) {
+						log.Printf("VPS-NETWATCH>> Ignoring invalid local user index %s and falling back to embedded frontend", path)
+						return false
+					}
 					netwatchServeInjectedUserIndex(c, customStatusCode, content)
 					return true
 				}
