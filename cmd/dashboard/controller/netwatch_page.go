@@ -31,6 +31,20 @@ func netwatchCanServeUserIndex(content []byte) bool {
 
 func netwatchServeInjectedUserIndex(c *gin.Context, statusCode int, content []byte) {
 	html := netwatchApplyUserBranding(string(content))
+	scripts := ""
+	if !strings.Contains(html, "vps-netwatch-home-button") {
+		scripts += netwatchHomeButtonScript
+	}
+	if !strings.Contains(html, "vps-netwatch-server-board-script") {
+		scripts += netwatchServerBoardScript
+	}
+	if scripts != "" {
+		if strings.Contains(html, "</body>") {
+			html = strings.Replace(html, "</body>", scripts+"</body>", 1)
+		} else {
+			html += scripts
+		}
+	}
 	c.Header("Cache-Control", "no-store, max-age=0")
 	c.Data(statusCode, "text/html; charset=utf-8", []byte(html))
 }
