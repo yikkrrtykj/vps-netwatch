@@ -13,8 +13,7 @@ func netwatchShouldInjectUserIndex(filePath string) bool {
 }
 
 func netwatchShouldRewriteUserAsset(filePath string) bool {
-	return filePath == singleton.Conf.UserTemplate+"/manifest.json" ||
-		(strings.HasPrefix(filePath, singleton.Conf.UserTemplate+"/assets/") && strings.HasSuffix(filePath, ".js"))
+	return filePath == singleton.Conf.UserTemplate+"/manifest.json"
 }
 
 func netwatchServeInjectedUserIndex(c *gin.Context, statusCode int, content []byte) {
@@ -40,22 +39,15 @@ func netwatchServeBrandedUserAsset(c *gin.Context, statusCode int, filePath stri
 	contentType := "text/plain; charset=utf-8"
 	if strings.HasSuffix(filePath, ".json") {
 		contentType = "application/manifest+json; charset=utf-8"
-	} else if strings.HasSuffix(filePath, ".js") {
-		contentType = "application/javascript; charset=utf-8"
 	}
 	c.Data(statusCode, contentType, []byte(netwatchApplyUserBranding(string(content))))
 }
 
 func netwatchApplyUserBranding(content string) string {
 	return strings.NewReplacer(
-		"https://github.com/naiba/nezha", "https://github.com/yikkrrtykj/vps-netwatch",
-		"https://github.com/hamster1963/nezha-dash-v1/commit/e4ba96e", "https://github.com/yikkrrtykj/vps-netwatch",
-		"https://github.com/hamster1963/nezha-dash", "https://github.com/yikkrrtykj/vps-netwatch",
-		"https://github.com/nezhahq/nezha", "https://github.com/yikkrrtykj/vps-netwatch",
 		"哪吒监控 Nezha Monitoring", "vps-netwatch",
 		"Nezha Monitoring", "vps-netwatch",
 		"哪吒监控", "vps-netwatch",
-		"nezha-dash", "vps-netwatch",
 		"NEZHA", "VPS-NETWATCH",
 		"Nezha", "vps-netwatch",
 	).Replace(content)
@@ -1231,28 +1223,15 @@ const netwatchServerBoardScript = `<script id="vps-netwatch-server-board-script"
 
   function cleanupBranding() {
     if (!document.body) return;
-    function textFromCodes(codes) {
-      return String.fromCharCode.apply(String, codes);
-    }
-    var legacyName = textFromCodes([78,101,122,104,97]);
-    var legacyNames = [
-      textFromCodes([21738,21522,30417,25511,32,78,101,122,104,97,32,77,111,110,105,116,111,114,105,110,103]),
-      textFromCodes([78,101,122,104,97,32,77,111,110,105,116,111,114,105,110,103]),
-      textFromCodes([21738,21522,30417,25511]),
-      textFromCodes([110,101,122,104,97,45,100,97,115,104]),
-      legacyName
-    ];
-    var projectPath = "github.com/naiba/" + textFromCodes([110,101,122,104,97]);
-    var themePath = "hamster1963/" + textFromCodes([110,101,122,104,97,45,100,97,115,104]);
     document.title = "vps-netwatch";
     Array.prototype.forEach.call(document.querySelectorAll('meta[name="apple-mobile-web-app-title"],meta[property="og:title"],meta[name="application-name"]'), function (meta) {
       meta.setAttribute("content", "vps-netwatch");
     });
-    Array.prototype.forEach.call(document.querySelectorAll('a[href*="' + projectPath + '"]'), function (link) {
+    Array.prototype.forEach.call(document.querySelectorAll('a[href*="github.com/naiba/nezha"]'), function (link) {
       link.href = "https://github.com/yikkrrtykj/vps-netwatch";
       link.textContent = "vps-netwatch";
     });
-    Array.prototype.forEach.call(document.querySelectorAll('a[href*="' + themePath + '"]'), function (link) {
+    Array.prototype.forEach.call(document.querySelectorAll('a[href*="hamster1963/nezha"]'), function (link) {
       var theme = link.closest(".server-footer-theme");
       if (theme) theme.remove();
     });
@@ -1260,18 +1239,18 @@ const netwatchServerBoardScript = `<script id="vps-netwatch-server-board-script"
       acceptNode: function (node) {
         var parent = node.parentElement;
         if (!parent || /SCRIPT|STYLE|TEXTAREA|INPUT/.test(parent.tagName)) return NodeFilter.FILTER_REJECT;
-        var value = node.nodeValue || "";
-        return legacyNames.some(function (name) { return value.indexOf(name) >= 0; }) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+        return /(哪吒监控|Nezha Monitoring|Nezha|nezha-dash)/.test(node.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
       }
     });
     var nodes = [];
     while (walker.nextNode()) nodes.push(walker.currentNode);
     nodes.forEach(function (node) {
-      var value = node.nodeValue || "";
-      legacyNames.forEach(function (name) {
-        value = value.split(name).join("vps-netwatch");
-      });
-      node.nodeValue = value;
+      node.nodeValue = node.nodeValue
+        .replace(/哪吒监控 Nezha Monitoring/g, "vps-netwatch")
+        .replace(/Nezha Monitoring/g, "vps-netwatch")
+        .replace(/哪吒监控/g, "vps-netwatch")
+        .replace(/nezha-dash/g, "vps-netwatch")
+        .replace(/Nezha/g, "vps-netwatch");
     });
   }
 
