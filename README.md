@@ -62,7 +62,7 @@ cd /opt/vps-netwatch/dashboard
 listen_port: 8008
 language: zh_CN
 site_name: vps-netwatch
-install_host: 你的主控IP:8008
+install_host: IP:8008
 tls: false
 
 tsdb:
