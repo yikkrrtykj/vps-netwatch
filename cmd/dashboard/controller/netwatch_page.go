@@ -9,19 +9,34 @@ import (
 )
 
 func netwatchShouldInjectUserIndex(filePath string) bool {
-	return filePath == singleton.Conf.UserTemplate+"/index.html"
+	return filePath == singleton.Conf.UserTemplate+"/index.html" || filePath == singleton.Conf.AdminTemplate+"/index.html"
 }
 
 func netwatchServeInjectedUserIndex(c *gin.Context, statusCode int, content []byte) {
-	html := string(content)
+	html := netwatchApplyBranding(string(content))
+	scripts := ""
 	if !strings.Contains(html, "vps-netwatch-home-button") {
-		if strings.Contains(html, "</body>") {
-			html = strings.Replace(html, "</body>", netwatchHomeButtonScript+"</body>", 1)
-		} else {
-			html += netwatchHomeButtonScript
-		}
+		scripts += netwatchHomeButtonScript
+	}
+	if !strings.Contains(html, "vps-netwatch-server-board-script") {
+		scripts += netwatchServerBoardScript
+	}
+	if scripts != "" && strings.Contains(html, "</body>") {
+		html = strings.Replace(html, "</body>", scripts+"</body>", 1)
+	} else if scripts != "" {
+		html += scripts
 	}
 	c.Data(statusCode, "text/html; charset=utf-8", []byte(html))
+}
+
+func netwatchApplyBranding(content string) string {
+	return strings.NewReplacer(
+		"哪吒监控 Nezha Monitoring", "vps-netwatch",
+		"Nezha Monitoring", "vps-netwatch",
+		"哪吒监控", "vps-netwatch",
+		"nezha-dash", "vps-netwatch",
+		"Nezha", "vps-netwatch",
+	).Replace(content)
 }
 
 const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
@@ -552,5 +567,460 @@ const netwatchHomeButtonScript = `<script id="vps-netwatch-home-button">
   var observer = new MutationObserver(ensureButton);
   observer.observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener("visibilitychange", ensureButton);
+})();
+</script>`
+
+const netwatchServerBoardScript = `<script id="vps-netwatch-server-board-script">
+(function () {
+  if (window.__vpsNetwatchServerBoardInstalled) return;
+  window.__vpsNetwatchServerBoardInstalled = true;
+
+  var board;
+  var refreshTimer = 0;
+  var state = {
+    data: null,
+    view: readNativeView(),
+    loading: false,
+    error: "",
+    note: "",
+    discovered: [],
+    mihomoUrl: "",
+    mihomoSecret: ""
+  };
+  var serviceEmptyPattern = /No Service|no service|暂无服务|没有服务|服务数据|暂无数据/i;
+
+  function readNativeView() {
+    try { return window.localStorage.getItem("inline") === "1" ? "table" : "grid"; } catch (_) { return "grid"; }
+  }
+
+  function getToken() {
+    function scan(value, depth) {
+      if (!value || depth > 3) return "";
+      if (typeof value === "string") {
+        var text = value.trim();
+        if (/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(text)) return text;
+        if ((text.charAt(0) === "{" || text.charAt(0) === "[") && text.length < 20000) {
+          try { return scan(JSON.parse(text), depth + 1); } catch (_) { return ""; }
+        }
+        return "";
+      }
+      if (Array.isArray(value)) {
+        for (var i = 0; i < value.length; i++) { var a = scan(value[i], depth + 1); if (a) return a; }
+      } else if (typeof value === "object") {
+        for (var key in value) { var b = scan(value[key], depth + 1); if (b) return b; }
+      }
+      return "";
+    }
+    var stores = [window.localStorage, window.sessionStorage];
+    for (var s = 0; s < stores.length; s++) {
+      try {
+        for (var i = 0; i < stores[s].length; i++) {
+          var token = scan(stores[s].getItem(stores[s].key(i)), 0);
+          if (token) return token;
+        }
+      } catch (_) {}
+    }
+    return "";
+  }
+
+  function injectStyle() {
+    if (document.getElementById("vps-netwatch-server-board-style")) return;
+    var style = document.createElement("style");
+    style.id = "vps-netwatch-server-board-style";
+    style.textContent =
+      ".vpsnw-server-board-ready .server-overview-controls section>button:nth-of-type(2){display:none!important}" +
+      ".vpsnw-server-board-ready .server-card-list,.vpsnw-server-board-ready .server-inline-list{display:none!important}" +
+      "#vps-netwatch-server-board{margin-top:14px;color:#111827}" +
+      ".dark #vps-netwatch-server-board{color:#f8fafc}" +
+      ".vpsnw-board-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;align-items:center;margin-bottom:10px}" +
+      ".vpsnw-board-title{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:#0f172a}.dark .vpsnw-board-title{color:#f8fafc}" +
+      ".vpsnw-board-title span{width:8px;height:8px;border-radius:999px;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.15)}" +
+      ".vpsnw-board-tools{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px}.vpsnw-board-tabs{display:flex;gap:4px;border:1px solid rgba(148,163,184,.28);border-radius:999px;background:rgba(255,255,255,.75);padding:3px}.dark .vpsnw-board-tabs{background:rgba(15,23,42,.62);border-color:rgba(255,255,255,.14)}" +
+      ".vpsnw-board-tabs button{border:0;border-radius:999px;background:transparent;color:#64748b;cursor:pointer;font-size:12px;font-weight:700;line-height:1;padding:7px 10px}.dark .vpsnw-board-tabs button{color:#cbd5e1}.vpsnw-board-tabs button.active{background:#2563eb;color:#fff}" +
+      ".vpsnw-wizard{grid-column:1/-1;display:grid;gap:7px;border:1px solid rgba(148,163,184,.22);border-radius:8px;background:rgba(255,255,255,.66);padding:9px}.dark .vpsnw-wizard{background:rgba(15,23,42,.58);border-color:rgba(255,255,255,.12)}" +
+      ".vpsnw-wizard-row{display:flex;flex-wrap:wrap;align-items:center;gap:7px}.vpsnw-wizard label{display:inline-flex;align-items:center;gap:6px;min-height:30px;border:1px solid rgba(148,163,184,.28);border-radius:7px;background:rgba(248,250,252,.9);color:#64748b;font-size:12px;padding:4px 8px}.dark .vpsnw-wizard label{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14);color:#94a3b8}" +
+      ".vpsnw-wizard input{min-width:150px;border:0;outline:0;background:transparent;color:#0f172a;font:inherit}.dark .vpsnw-wizard input{color:#f8fafc}.vpsnw-wizard .wide input{min-width:230px}.vpsnw-board-btn{border:1px solid rgba(37,99,235,.35);border-radius:7px;background:#2563eb;color:#fff;cursor:pointer;font-size:12px;font-weight:700;line-height:1;padding:8px 10px}.vpsnw-board-btn.secondary{background:rgba(248,250,252,.9);color:#1d4ed8}.dark .vpsnw-board-btn.secondary{background:rgba(255,255,255,.08);color:#bfdbfe}" +
+      ".vpsnw-board-note{font-size:12px;color:#2563eb}.vpsnw-board-note.err{color:#dc2626}.dark .vpsnw-board-note{color:#93c5fd}.dark .vpsnw-board-note.err{color:#fca5a5}.vpsnw-discover summary{cursor:pointer;font-size:12px;color:#64748b;user-select:none}.dark .vpsnw-discover summary{color:#94a3b8}.vpsnw-discover-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.vpsnw-discover-item{display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(148,163,184,.26);border-radius:999px;background:rgba(248,250,252,.86);font-size:12px;padding:5px 7px}.dark .vpsnw-discover-item{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.14)}.vpsnw-mini-btn{border:0;border-radius:999px;background:#0f172a;color:#fff;cursor:pointer;font-size:11px;line-height:1;padding:5px 7px}.dark .vpsnw-mini-btn{background:#f8fafc;color:#0f172a}" +
+      ".vpsnw-server-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}.vpsnw-node-card{border:1px solid rgba(148,163,184,.24);border-radius:8px;background:rgba(255,255,255,.84);box-shadow:0 10px 24px rgba(15,23,42,.07);padding:12px;cursor:pointer;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease}.vpsnw-node-card:hover{transform:translateY(-1px);border-color:rgba(37,99,235,.38);box-shadow:0 14px 30px rgba(15,23,42,.12)}.dark .vpsnw-node-card{background:rgba(15,23,42,.76);border-color:rgba(255,255,255,.12);box-shadow:none}" +
+      ".vpsnw-node-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}.vpsnw-node-name{display:flex;align-items:center;gap:8px;min-width:0}.vpsnw-node-name strong{font-size:13px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vpsnw-node-sub{display:flex;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap}" +
+      ".vpsnw-status{width:9px;height:9px;border-radius:999px;background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.13);flex:0 0 auto}.vpsnw-status.online{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.16)}" +
+      ".vpsnw-pill{display:inline-flex;align-items:center;border-radius:999px;font-size:11px;font-weight:700;line-height:1;padding:4px 7px;white-space:nowrap}.vpsnw-pill.ip{background:rgba(37,99,235,.11);color:#1d4ed8}.vpsnw-pill.band{background:rgba(20,184,166,.12);color:#0f766e}.vpsnw-pill.left{background:rgba(99,102,241,.12);color:#4f46e5}.vpsnw-pill.muted{background:rgba(100,116,139,.12);color:#64748b}.vpsnw-pill.bad{background:rgba(239,68,68,.13);color:#b91c1c}.vpsnw-pill.warn{background:rgba(245,158,11,.16);color:#b45309}.vpsnw-pill.jitter{background:rgba(168,85,247,.13);color:#7e22ce}.dark .vpsnw-pill.ip{background:rgba(96,165,250,.16);color:#bfdbfe}.dark .vpsnw-pill.band{background:rgba(45,212,191,.16);color:#99f6e4}.dark .vpsnw-pill.left{background:rgba(129,140,248,.18);color:#c7d2fe}.dark .vpsnw-pill.muted{background:rgba(148,163,184,.16);color:#cbd5e1}.dark .vpsnw-pill.bad{color:#fecaca}.dark .vpsnw-pill.warn{color:#fde68a}.dark .vpsnw-pill.jitter{color:#e9d5ff}" +
+      ".vpsnw-plan-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}.vpsnw-meter-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:10px}.vpsnw-meter label{display:flex;justify-content:space-between;gap:6px;color:#64748b;font-size:11px}.dark .vpsnw-meter label{color:#94a3b8}.vpsnw-meter b{color:#0f172a;font-size:11px}.dark .vpsnw-meter b{color:#f8fafc}.vpsnw-bar{height:4px;border-radius:999px;background:rgba(148,163,184,.18);overflow:hidden;margin-top:5px}.vpsnw-bar span{display:block;height:100%;border-radius:999px;background:#60a5fa}.vpsnw-bar.mem span{background:#a78bfa}.vpsnw-bar.disk span{background:#f59e0b}" +
+      ".vpsnw-speed-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid rgba(148,163,184,.18);padding-top:9px}.vpsnw-speed-row div{display:flex;flex-direction:column;gap:3px}.vpsnw-speed-row span{color:#64748b;font-size:11px}.dark .vpsnw-speed-row span{color:#94a3b8}.vpsnw-speed-row b{font-size:12px;color:#0f172a}.dark .vpsnw-speed-row b{color:#f8fafc}.vpsnw-up{color:#2563eb!important}.vpsnw-down{color:#16a34a!important}.vpsnw-latency-row{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 10px;padding-top:8px;border-top:1px dashed rgba(148,163,184,.24)}.vpsnw-latency-title{color:#64748b;font-size:11px;padding:4px 0}.dark .vpsnw-latency-title{color:#94a3b8}" +
+      ".vpsnw-server-table-wrap{overflow:auto;border:1px solid rgba(148,163,184,.22);border-radius:8px;background:rgba(255,255,255,.82);box-shadow:0 10px 24px rgba(15,23,42,.06)}.dark .vpsnw-server-table-wrap{background:rgba(15,23,42,.72);border-color:rgba(255,255,255,.12);box-shadow:none}.vpsnw-server-table{width:100%;min-width:1040px;border-collapse:separate;border-spacing:0}.vpsnw-server-table th{position:sticky;top:0;background:rgba(248,250,252,.94);color:#64748b;font-size:12px;font-weight:800;text-align:left;padding:11px 12px;white-space:nowrap}.dark .vpsnw-server-table th{background:rgba(15,23,42,.96);color:#cbd5e1}.vpsnw-server-table td{border-top:1px solid rgba(148,163,184,.18);font-size:12px;padding:11px 12px;vertical-align:middle}.vpsnw-server-table tr{cursor:pointer}.vpsnw-server-table tr:hover td{background:rgba(37,99,235,.06)}.dark .vpsnw-server-table tr:hover td{background:rgba(96,165,250,.08)}.vpsnw-cell-node{display:flex;align-items:center;gap:8px;min-width:170px}.vpsnw-cell-node strong{display:block;max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vpsnw-cell-node small{display:block;color:#64748b;margin-top:3px}.dark .vpsnw-cell-node small{color:#94a3b8}.vpsnw-table-meter{display:grid;gap:4px;min-width:92px}.vpsnw-table-meter span{display:flex;justify-content:space-between;color:#64748b;font-size:11px}.dark .vpsnw-table-meter span{color:#94a3b8}" +
+      ".vpsnw-server-empty{border:1px dashed rgba(148,163,184,.36);border-radius:8px;background:rgba(255,255,255,.66);color:#64748b;font-size:13px;padding:22px;text-align:center}.dark .vpsnw-server-empty{background:rgba(15,23,42,.5);color:#94a3b8;border-color:rgba(255,255,255,.16)}" +
+      "@media(max-width:760px){.vpsnw-board-top{grid-template-columns:1fr}.vpsnw-board-tools{justify-content:flex-start}.vpsnw-wizard .wide input,.vpsnw-wizard input{min-width:0;width:100%}.vpsnw-wizard label{width:100%}.vpsnw-meter-grid{grid-template-columns:1fr}.vpsnw-server-grid{grid-template-columns:1fr}.vpsnw-speed-row{grid-template-columns:1fr}}";
+    document.head.appendChild(style);
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch];
+    });
+  }
+  function fmtBytes(value) {
+    var n = Math.max(0, Number(value) || 0);
+    var units = ["B", "KiB", "MiB", "GiB", "TiB", "PiB"];
+    var i = 0;
+    while (n >= 1024 && i < units.length - 1) { n /= 1024; i++; }
+    var text = i === 0 ? String(Math.round(n)) : (n < 10 ? n.toFixed(2) : n < 100 ? n.toFixed(1) : String(Math.round(n)));
+    return text + " " + units[i];
+  }
+  function fmtRate(value) { return fmtBytes(value) + "/s"; }
+  function fmtMs(value) { return !isFinite(value) || value <= 0 ? "-" : (value < 100 ? value.toFixed(1) : Math.round(value)) + "ms"; }
+  function pct(used, total) {
+    total = Number(total) || 0;
+    if (!total) return 0;
+    return Math.max(0, Math.min(100, (Number(used) || 0) / total * 100));
+  }
+
+  function cleanupBranding() {
+    if (!document.body) return;
+    if (/哪吒|Nezha|nezha/i.test(document.title || "")) document.title = "vps-netwatch";
+    Array.prototype.forEach.call(document.querySelectorAll('meta[name="apple-mobile-web-app-title"],meta[property="og:title"],meta[name="application-name"]'), function (meta) {
+      meta.setAttribute("content", "vps-netwatch");
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('a[href*="github.com/naiba/nezha"],a[href*="github.com/nezhahq/nezha"]'), function (link) {
+      link.href = "https://github.com/yikkrrtykj/vps-netwatch";
+      link.textContent = "vps-netwatch";
+    });
+    var walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+      acceptNode: function (node) {
+        var parent = node.parentElement;
+        if (!parent || /SCRIPT|STYLE|TEXTAREA|INPUT/.test(parent.tagName)) return NodeFilter.FILTER_REJECT;
+        return /(哪吒监控|Nezha Monitoring|nezha-dash|Nezha)/.test(node.nodeValue || "") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
+      }
+    });
+    var nodes = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    nodes.forEach(function (node) {
+      node.nodeValue = node.nodeValue
+        .replace(/哪吒监控 Nezha Monitoring/g, "vps-netwatch")
+        .replace(/Nezha Monitoring/g, "vps-netwatch")
+        .replace(/哪吒监控/g, "vps-netwatch")
+        .replace(/nezha-dash/g, "vps-netwatch")
+        .replace(/Nezha/g, "vps-netwatch");
+    });
+  }
+
+  function protocolTags(server) {
+    var tags = [];
+    if (server.ipv4) tags.push("IPv4");
+    if (server.ipv6) tags.push("IPv6");
+    if (!tags.length && server.ip) tags.push(String(server.ip).indexOf(":") >= 0 ? "IPv6" : "IPv4");
+    return tags.length ? tags : ["IP"];
+  }
+  function planPills(server) {
+    var remaining = server.remaining_label || "未设置剩余时间";
+    var bandwidth = server.bandwidth_label || "未设置带宽";
+    return '<span class="vpsnw-pill left">' + escapeHtml(remaining) + '</span><span class="vpsnw-pill band">' + escapeHtml(bandwidth) + '</span>';
+  }
+  function ipPills(server) {
+    return protocolTags(server).map(function (tag) { return '<span class="vpsnw-pill ip">' + tag + '</span>'; }).join("");
+  }
+  function meter(label, value, kind) {
+    var n = Math.max(0, Math.min(100, Number(value) || 0));
+    return '<div class="vpsnw-meter"><label><span>' + label + '</span><b>' + n.toFixed(1) + '%</b></label><div class="vpsnw-bar ' + kind + '"><span style="width:' + n.toFixed(2) + '%"></span></div></div>';
+  }
+  function tableMeter(label, value, kind) {
+    var n = Math.max(0, Math.min(100, Number(value) || 0));
+    return '<div class="vpsnw-table-meter"><span><em>' + label + '</em><b>' + n.toFixed(1) + '%</b></span><div class="vpsnw-bar ' + kind + '"><span style="width:' + n.toFixed(2) + '%"></span></div></div>';
+  }
+
+  function seriesPoints(raw) {
+    return (raw.data_points || []).filter(function (p) { return p && p.status !== 0 && p.delay > 0; });
+  }
+  function percentile(values, ratio) {
+    if (!values.length) return 0;
+    var sorted = values.slice().sort(function (a, b) { return a - b; });
+    return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * ratio)))];
+  }
+  function analyzeSeries(raw) {
+    var pts = seriesPoints(raw);
+    var values = pts.map(function (p) { return Number(p.delay) || 0; }).filter(function (v) { return v > 0; });
+    var last = values.length ? values[values.length - 1] : 0;
+    var avg = values.length ? values.reduce(function (a, b) { return a + b; }, 0) / values.length : Number(raw.avg_delay) || 0;
+    var max = values.length ? Math.max.apply(null, values) : avg;
+    var p50 = percentile(values, 0.5);
+    var p95 = percentile(values, 0.95);
+    var anomalies = [];
+    if (max >= Math.max(180, avg * 2.2, avg + 80)) anomalies.push({ type: "warn", text: "峰值 " + fmtMs(max) });
+    if (values.length >= 6 && p95 - p50 >= 60) anomalies.push({ type: "jitter", text: "持续抖动" });
+    if (Number(raw.up_percent) > 0 && Number(raw.up_percent) < 98) anomalies.push({ type: "bad", text: "丢包 " + Math.max(0, 100 - Number(raw.up_percent)).toFixed(1) + "%" });
+    return { name: raw.service_name || raw.target || "延迟", type: raw.type_name || "", isPeer: !!raw.is_peer, avg: avg, last: last || avg, max: max, up: Number(raw.up_percent) || 0, anomalies: anomalies };
+  }
+  function latencyByServer() {
+    var map = {};
+    var data = state.data || {};
+    (data.servers || []).forEach(function (server) { map[String(server.id)] = { items: [], anomalies: [] }; });
+    (data.series || []).forEach(function (raw) {
+      var key = String(raw.server_id);
+      if (!map[key]) map[key] = { items: [], anomalies: [] };
+      var item = analyzeSeries(raw);
+      if (!item.last && !item.avg) return;
+      map[key].items.push(item);
+      item.anomalies.forEach(function (a) { map[key].anomalies.push({ service: item.name, type: a.type, text: a.text }); });
+    });
+    Object.keys(map).forEach(function (key) {
+      map[key].items.sort(function (a, b) { return (b.isPeer ? 1 : 0) - (a.isPeer ? 1 : 0) || a.name.localeCompare(b.name); });
+    });
+    return map;
+  }
+  function latencyPills(summary, limit) {
+    var items = (summary && summary.items) || [];
+    if (!items.length) return '<span class="vpsnw-latency-title">延迟 暂无数据</span>';
+    return '<span class="vpsnw-latency-title">延迟</span>' + items.slice(0, limit || 4).map(function (item) {
+      return '<span class="vpsnw-pill ' + (item.isPeer ? "warn" : "ip") + '">' + escapeHtml(item.name) + ' <b>' + fmtMs(item.last || item.avg) + '</b></span>';
+    }).join("") + (items.length > (limit || 4) ? '<span class="vpsnw-pill muted">+' + (items.length - (limit || 4)) + '</span>' : '');
+  }
+  function anomalyPills(summary) {
+    var items = (summary && summary.anomalies) || [];
+    if (!items.length) return "";
+    return items.slice(0, 3).map(function (item) {
+      return '<span class="vpsnw-pill ' + item.type + '">' + escapeHtml(item.service) + ' ' + escapeHtml(item.text) + '</span>';
+    }).join("");
+  }
+
+  function renderGrid(servers, latencyMap) {
+    return '<div class="vpsnw-server-grid">' + servers.map(function (server) {
+      var summary = latencyMap[String(server.id)] || {};
+      var cpu = Number(server.cpu) || 0;
+      var mem = pct(server.mem_used, server.mem_total);
+      var disk = pct(server.disk_used, server.disk_total);
+      var ip = server.ip || server.ipv4 || server.ipv6 || "";
+      return '<article class="vpsnw-node-card" data-vpsnw-server-id="' + server.id + '">' +
+        '<div class="vpsnw-node-top"><div class="vpsnw-node-name"><span class="vpsnw-status ' + (server.online ? "online" : "") + '"></span><div><strong>' + escapeHtml(server.name) + '</strong><div class="vpsnw-node-sub">' + ipPills(server) + (ip ? '<span class="vpsnw-pill muted">' + escapeHtml(ip) + '</span>' : '') + '</div></div></div></div>' +
+        '<div class="vpsnw-plan-row">' + planPills(server) + '</div>' +
+        '<div class="vpsnw-meter-grid">' + meter("CPU", cpu, "cpu") + meter("内存", mem, "mem") + meter("硬盘", disk, "disk") + '</div>' +
+        '<div class="vpsnw-latency-row">' + latencyPills(summary, 4) + anomalyPills(summary) + '</div>' +
+        '<div class="vpsnw-speed-row"><div><span>实时上传</span><b class="vpsnw-up">↑ ' + fmtRate(server.net_out_speed) + '</b><span>累计 ' + fmtBytes(server.net_out_transfer) + '</span></div><div><span>实时下载</span><b class="vpsnw-down">↓ ' + fmtRate(server.net_in_speed) + '</b><span>累计 ' + fmtBytes(server.net_in_transfer) + '</span></div></div>' +
+      '</article>';
+    }).join("") + '</div>';
+  }
+  function renderTable(servers, latencyMap) {
+    return '<div class="vpsnw-server-table-wrap"><table class="vpsnw-server-table"><thead><tr><th>节点</th><th>状态</th><th>CPU</th><th>内存</th><th>硬盘</th><th>剩余时间</th><th>最大带宽</th><th>实时网络速率</th><th>协议</th><th>延迟</th><th>异常</th><th>总传输</th></tr></thead><tbody>' +
+      servers.map(function (server) {
+        var summary = latencyMap[String(server.id)] || {};
+        var cpu = Number(server.cpu) || 0;
+        var mem = pct(server.mem_used, server.mem_total);
+        var disk = pct(server.disk_used, server.disk_total);
+        var ip = server.ip || server.ipv4 || server.ipv6 || "";
+        return '<tr data-vpsnw-server-id="' + server.id + '">' +
+          '<td><div class="vpsnw-cell-node"><span class="vpsnw-status ' + (server.online ? "online" : "") + '"></span><div><strong>' + escapeHtml(server.name) + '</strong>' + (ip ? '<small>' + escapeHtml(ip) + '</small>' : '') + '</div></div></td>' +
+          '<td>' + (server.online ? '<span class="vpsnw-pill left">在线</span>' : '<span class="vpsnw-pill muted">离线</span>') + '</td>' +
+          '<td>' + tableMeter("CPU", cpu, "cpu") + '</td>' +
+          '<td>' + tableMeter("内存", mem, "mem") + '</td>' +
+          '<td>' + tableMeter("硬盘", disk, "disk") + '</td>' +
+          '<td><span class="vpsnw-pill left">' + escapeHtml(server.remaining_label || "未设置") + '</span></td>' +
+          '<td><span class="vpsnw-pill band">' + escapeHtml(server.bandwidth_label || "未设置") + '</span></td>' +
+          '<td><b class="vpsnw-up">↑ ' + fmtRate(server.net_out_speed) + '</b><br><b class="vpsnw-down">↓ ' + fmtRate(server.net_in_speed) + '</b></td>' +
+          '<td>' + ipPills(server) + '</td>' +
+          '<td>' + latencyPills(summary, 2) + '</td>' +
+          '<td>' + (anomalyPills(summary) || '<span class="vpsnw-pill muted">正常</span>') + '</td>' +
+          '<td>↑ ' + fmtBytes(server.net_out_transfer) + '<br>↓ ' + fmtBytes(server.net_in_transfer) + '</td>' +
+        '</tr>';
+      }).join("") + '</tbody></table></div>';
+  }
+
+  function renderDiscoverList() {
+    if (!state.discovered.length) return "";
+    return '<div class="vpsnw-discover-list">' + state.discovered.map(function (item) {
+      var meta = [item.type_name, item.network, item.process, item.chain].filter(Boolean).join(" · ");
+      return '<span class="vpsnw-discover-item"><b>' + escapeHtml(item.target) + '</b>' + (meta ? '<small>' + escapeHtml(meta) + '</small>' : '') + '<button class="vpsnw-mini-btn" data-vpsnw-add-target="' + escapeHtml(item.target) + '" data-vpsnw-target-name="' + escapeHtml(item.host || item.target) + '">加入</button></span>';
+    }).join("") + '</div>';
+  }
+  function renderWizard() {
+    var discoverOpen = state.discovered.length || state.mihomoUrl ? " open" : "";
+    return '<div class="vpsnw-wizard"><div class="vpsnw-wizard-row"><label class="wide"><span>目标向导</span><input id="vpsnw-board-target" placeholder="IP / 域名 / IP:端口"></label><label><span>名称</span><input id="vpsnw-board-target-name" placeholder="可留空"></label><button class="vpsnw-board-btn" data-vpsnw-add-target-form="1">加入监控</button><span class="vpsnw-board-note ' + (state.error ? "err" : "") + '">' + escapeHtml(state.note || "IP/域名创建 ICMP，IP:端口创建 TCP") + '</span></div><details class="vpsnw-discover"' + discoverOpen + '><summary>mihomo / Clash 连接发现</summary><div class="vpsnw-wizard-row"><label class="wide"><span>控制器</span><input id="vpsnw-board-mihomo-url" value="' + escapeHtml(state.mihomoUrl) + '" placeholder="http://127.0.0.1:9090"></label><label><span>密钥</span><input id="vpsnw-board-mihomo-secret" type="password" value="' + escapeHtml(state.mihomoSecret) + '" placeholder="可留空"></label><button class="vpsnw-board-btn secondary" data-vpsnw-discover="1">读取连接</button></div>' + renderDiscoverList() + '</details></div>';
+  }
+  function render() {
+    if (!board) return;
+    var data = state.data || {};
+    var servers = (data.servers || []).slice().sort(function (a, b) { return String(a.name || "").localeCompare(String(b.name || "")); });
+    var latencyMap = latencyByServer();
+    var body = "";
+    if (state.error && !servers.length) {
+      body = '<div class="vpsnw-server-empty">' + escapeHtml(state.error) + '</div>';
+    } else if (!servers.length) {
+      body = '<div class="vpsnw-server-empty">' + (state.loading ? "正在读取服务器数据" : "暂无服务器数据") + '</div>';
+    } else {
+      body = state.view === "table" ? renderTable(servers, latencyMap) : renderGrid(servers, latencyMap);
+    }
+    board.innerHTML =
+      '<div class="vpsnw-board-top"><div class="vpsnw-board-title"><span></span>服务器速览</div><div class="vpsnw-board-tools"><div class="vpsnw-board-tabs"><button type="button" data-vpsnw-view="grid" class="' + (state.view === "grid" ? "active" : "") + '">卡片</button><button type="button" data-vpsnw-view="table" class="' + (state.view === "table" ? "active" : "") + '">表格</button></div></div>' + renderWizard() + '</div>' + body;
+  }
+
+  async function loadServers() {
+    if (state.loading) return;
+    state.loading = true;
+    render();
+    try {
+      var headers = {};
+      var token = getToken();
+      if (token) headers.Authorization = "Bearer " + token;
+      var res = await fetch("/api/v1/netwatch/latency?period=1d&_=" + Date.now(), { headers: headers, credentials: "same-origin" });
+      var json = await res.json();
+      if (!json.success) throw new Error(json.error || "服务器数据读取失败");
+      state.data = json.data || {};
+      state.error = "";
+    } catch (err) {
+      state.error = (err && err.message) || "服务器数据读取失败";
+    } finally {
+      state.loading = false;
+      render();
+    }
+  }
+
+  async function addTarget(target, name) {
+    target = String(target || "").trim();
+    name = String(name || "").trim();
+    if (!target) {
+      state.note = "请输入目标";
+      state.error = "missing target";
+      render();
+      return;
+    }
+    state.note = "正在加入监控";
+    state.error = "";
+    render();
+    try {
+      var headers = { "Content-Type": "application/json" };
+      var token = getToken();
+      if (token) headers.Authorization = "Bearer " + token;
+      var res = await fetch("/api/v1/netwatch/target", {
+        method: "POST",
+        headers: headers,
+        credentials: "same-origin",
+        body: JSON.stringify({ target: target, name: name, duration: 30 })
+      });
+      var json = await res.json();
+      if (!json.success) throw new Error(json.error || "加入失败");
+      state.note = (json.data && json.data.created ? "已创建 " : "已存在 ") + (json.data ? json.data.type_name + " " + json.data.target : target);
+      state.discovered = [];
+      await loadServers();
+    } catch (err) {
+      state.note = (err && err.message) || "加入失败";
+      state.error = state.note;
+      render();
+    }
+  }
+
+  async function discoverTargets() {
+    var urlInput = board && board.querySelector("#vpsnw-board-mihomo-url");
+    var secretInput = board && board.querySelector("#vpsnw-board-mihomo-secret");
+    state.mihomoUrl = urlInput ? urlInput.value : state.mihomoUrl;
+    state.mihomoSecret = secretInput ? secretInput.value : state.mihomoSecret;
+    state.note = "正在读取连接";
+    state.error = "";
+    render();
+    try {
+      var headers = { "Content-Type": "application/json" };
+      var token = getToken();
+      if (token) headers.Authorization = "Bearer " + token;
+      var res = await fetch("/api/v1/netwatch/mihomo/discover", {
+        method: "POST",
+        headers: headers,
+        credentials: "same-origin",
+        body: JSON.stringify({ controller: state.mihomoUrl, secret: state.mihomoSecret, limit: 60 })
+      });
+      var json = await res.json();
+      if (!json.success) throw new Error(json.error || "读取失败");
+      state.discovered = (json.data && json.data.targets) || [];
+      state.note = state.discovered.length ? "发现 " + state.discovered.length + " 个连接目标" : "没有发现可加入的连接目标";
+      render();
+    } catch (err) {
+      state.note = (err && err.message) || "读取失败";
+      state.error = state.note;
+      render();
+    }
+  }
+
+  function hideNativeServiceEmpty(controls) {
+    try { window.localStorage.setItem("showServices", "0"); } catch (_) {}
+    if (!controls || !controls.parentElement) return;
+    Array.prototype.forEach.call(controls.parentElement.children, function (el) {
+      if (el === controls || el.id === "vps-netwatch-server-board" || el.classList.contains("server-overview") || el.classList.contains("server-card-list") || el.classList.contains("server-inline-list")) return;
+      if (serviceEmptyPattern.test(el.textContent || "")) el.style.display = "none";
+    });
+  }
+  function ensureBoard() {
+    injectStyle();
+    cleanupBranding();
+    var controls = document.querySelector(".server-overview-controls");
+    if (!controls) return false;
+    document.body.classList.add("vpsnw-server-board-ready");
+    hideNativeServiceEmpty(controls);
+    var nativeView = readNativeView();
+    if (nativeView !== state.view && !board) state.view = nativeView;
+    if (!board) {
+      board = document.createElement("section");
+      board.id = "vps-netwatch-server-board";
+      render();
+      loadServers();
+      refreshTimer = window.setInterval(loadServers, 30000);
+    }
+    if (!board.isConnected || board.previousElementSibling !== controls) {
+      controls.insertAdjacentElement("afterend", board);
+    }
+    return true;
+  }
+
+  document.addEventListener("click", function (event) {
+    var target = event.target && event.target.closest ? event.target : event.target && event.target.parentElement;
+    if (!target || !board || !board.contains(target)) return;
+    var viewButton = target.closest("[data-vpsnw-view]");
+    if (viewButton) {
+      state.view = viewButton.getAttribute("data-vpsnw-view") || "grid";
+      try { window.localStorage.setItem("inline", state.view === "table" ? "1" : "0"); } catch (_) {}
+      render();
+      return;
+    }
+    var formButton = target.closest("[data-vpsnw-add-target-form]");
+    if (formButton) {
+      var targetInput = board.querySelector("#vpsnw-board-target");
+      var nameInput = board.querySelector("#vpsnw-board-target-name");
+      addTarget(targetInput && targetInput.value, nameInput && nameInput.value);
+      return;
+    }
+    var addButton = target.closest("[data-vpsnw-add-target]");
+    if (addButton) {
+      addTarget(addButton.getAttribute("data-vpsnw-add-target"), addButton.getAttribute("data-vpsnw-target-name"));
+      return;
+    }
+    if (target.closest("[data-vpsnw-discover]")) {
+      discoverTargets();
+      return;
+    }
+    var card = target.closest("[data-vpsnw-server-id]");
+    if (card && !target.closest("button,input,summary,details")) {
+      var id = card.getAttribute("data-vpsnw-server-id");
+      if (id) {
+        try { window.sessionStorage.setItem("fromMainPage", "true"); } catch (_) {}
+        window.location.href = "/server/" + encodeURIComponent(id);
+      }
+    }
+  });
+
+  ensureBoard();
+  var observer = new MutationObserver(ensureBoard);
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  window.setInterval(function () {
+    if (!board) ensureBoard();
+    var nativeView = readNativeView();
+    if (board && nativeView !== state.view) {
+      state.view = nativeView;
+      render();
+    }
+    cleanupBranding();
+  }, 1500);
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) {
+      ensureBoard();
+      loadServers();
+    }
+  });
+  window.addEventListener("beforeunload", function () {
+    if (refreshTimer) window.clearInterval(refreshTimer);
+  });
 })();
 </script>`

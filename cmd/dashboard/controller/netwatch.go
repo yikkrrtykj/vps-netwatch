@@ -1,11 +1,17 @@
 package controller
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net"
+	"net/http"
+	"net/url"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gin-gonic/gin"
 
@@ -24,9 +30,26 @@ type netwatchLatencyResponse struct {
 }
 
 type netwatchLatencyServer struct {
-	ID   uint64 `json:"id"`
-	Name string `json:"name"`
-	IP   string `json:"ip,omitempty"`
+	ID             uint64  `json:"id"`
+	Name           string  `json:"name"`
+	IP             string  `json:"ip,omitempty"`
+	IPv4           string  `json:"ipv4,omitempty"`
+	IPv6           string  `json:"ipv6,omitempty"`
+	CountryCode    string  `json:"country_code,omitempty"`
+	Platform       string  `json:"platform,omitempty"`
+	Online         bool    `json:"online"`
+	BandwidthLabel string  `json:"bandwidth_label,omitempty"`
+	RemainingLabel string  `json:"remaining_label,omitempty"`
+	CPU            float64 `json:"cpu,omitempty"`
+	MemUsed        uint64  `json:"mem_used,omitempty"`
+	MemTotal       uint64  `json:"mem_total,omitempty"`
+	DiskUsed       uint64  `json:"disk_used,omitempty"`
+	DiskTotal      uint64  `json:"disk_total,omitempty"`
+	Uptime         uint64  `json:"uptime,omitempty"`
+	NetInSpeed     uint64  `json:"net_in_speed,omitempty"`
+	NetOutSpeed    uint64  `json:"net_out_speed,omitempty"`
+	NetInTransfer  uint64  `json:"net_in_transfer,omitempty"`
+	NetOutTransfer uint64  `json:"net_out_transfer,omitempty"`
 }
 
 type netwatchLatencyService struct {
@@ -71,6 +94,44 @@ type netwatchPeerTargetForm struct {
 	TargetServerID uint64 `json:"target_server_id"`
 }
 
+type netwatchTargetForm struct {
+	Target   string `json:"target"`
+	Name     string `json:"name"`
+	Duration uint64 `json:"duration"`
+}
+
+type netwatchTargetResponse struct {
+	ServiceID uint64 `json:"service_id"`
+	Name      string `json:"name"`
+	Target    string `json:"target"`
+	Type      uint8  `json:"type"`
+	TypeName  string `json:"type_name"`
+	Created   bool   `json:"created"`
+}
+
+type netwatchMihomoDiscoverForm struct {
+	Controller string `json:"controller"`
+	Secret     string `json:"secret"`
+	Limit      int    `json:"limit"`
+}
+
+type netwatchMihomoDiscoverResponse struct {
+	Targets []netwatchMihomoTarget `json:"targets"`
+}
+
+type netwatchMihomoTarget struct {
+	Target   string `json:"target"`
+	Type     uint8  `json:"type"`
+	TypeName string `json:"type_name"`
+	Host     string `json:"host,omitempty"`
+	Port     string `json:"port,omitempty"`
+	Network  string `json:"network,omitempty"`
+	Rule     string `json:"rule,omitempty"`
+	Chain    string `json:"chain,omitempty"`
+	Process  string `json:"process,omitempty"`
+	Count    int    `json:"count"`
+}
+
 const (
 	netwatchPeerServicePrefix = "[vps-netwatch-peer:"
 	netwatchPeerServiceSuffix = "] "
@@ -104,9 +165,41 @@ func getNetwatchLatency(c *gin.Context) (*netwatchLatencyResponse, error) {
 			continue
 		}
 		visibleServers[id] = server
-		resp.Servers = append(resp.Servers, netwatchLatencyServer{ID: id, Name: server.Name, IP: netwatchPeerTargetIP(server, serverMap)})
+		ipv4, ipv6 := netwatchServerIPVersions(server)
+		serverInfo := netwatchLatencyServer{
+			ID:             id,
+			Name:           server.Name,
+			IP:             netwatchPeerTargetIP(server, serverMap),
+			IPv4:           ipv4,
+			IPv6:           ipv6,
+			Online:         server.TaskStream != nil,
+			BandwidthLabel: netwatchServerBandwidthLabel(server),
+			RemainingLabel: netwatchServerRemainingLabel(server),
+		}
+		if server.GeoIP != nil {
+			serverInfo.CountryCode = server.GeoIP.CountryCode
+		}
+		if server.Host != nil {
+			serverInfo.Platform = server.Host.Platform
+			serverInfo.MemTotal = server.Host.MemTotal
+			serverInfo.DiskTotal = server.Host.DiskTotal
+		}
+		if server.State != nil {
+			serverInfo.CPU = server.State.CPU
+			serverInfo.MemUsed = server.State.MemUsed
+			serverInfo.DiskUsed = server.State.DiskUsed
+			serverInfo.Uptime = server.State.Uptime
+			serverInfo.NetInSpeed = server.State.NetInSpeed
+			serverInfo.NetOutSpeed = server.State.NetOutSpeed
+			serverInfo.NetInTransfer = server.State.NetInTransfer
+			serverInfo.NetOutTransfer = server.State.NetOutTransfer
+		}
+		resp.Servers = append(resp.Servers, serverInfo)
 	}
 	sort.Slice(resp.Servers, func(i, j int) bool { return resp.Servers[i].Name < resp.Servers[j].Name })
+	if netwatchTruthy(c.Query("servers_only")) {
+		return resp, nil
+	}
 
 	for _, service := range singleton.ServiceSentinelShared.GetSortedList() {
 		if service == nil || !netwatchIsLatencyService(service.Type) {
@@ -175,6 +268,340 @@ func netwatchShouldExposeLatencyService(service *model.Service, peerServerID uin
 		return false
 	}
 	return true
+}
+
+func createNetwatchTarget(c *gin.Context) (*netwatchTargetResponse, error) {
+	var form netwatchTargetForm
+	if err := c.ShouldBindJSON(&form); err != nil {
+		return nil, err
+	}
+
+	target, taskType, err := netwatchNormalizeMonitorTarget(form.Target)
+	if err != nil {
+		return nil, err
+	}
+	name := strings.TrimSpace(form.Name)
+	if name == "" {
+		name = netwatchDefaultTargetName(target, taskType)
+	}
+	duration := form.Duration
+	if duration == 0 {
+		duration = 30
+	}
+	if duration < 5 {
+		duration = 5
+	}
+
+	if existing := netwatchFindExistingTarget(taskType, target); existing != nil {
+		changed := false
+		if existing.Cover == model.ServiceCoverIgnoreAll && len(existing.SkipServers) == 0 {
+			existing.Cover = model.ServiceCoverAll
+			changed = true
+		}
+		if existing.Duration == 0 {
+			existing.Duration = duration
+			changed = true
+		}
+		if changed {
+			if err := netwatchSaveService(existing); err != nil {
+				return nil, err
+			}
+		}
+		return &netwatchTargetResponse{
+			ServiceID: existing.ID,
+			Name:      existing.Name,
+			Target:    existing.Target,
+			Type:      existing.Type,
+			TypeName:  netwatchServiceTypeName(existing.Type),
+			Created:   false,
+		}, nil
+	}
+
+	service := &model.Service{
+		Common:              model.Common{UserID: getUid(c)},
+		Name:                name,
+		Target:              target,
+		Type:                taskType,
+		SkipServers:         map[uint64]bool{},
+		Cover:               model.ServiceCoverAll,
+		DisplayIndex:        0,
+		Notify:              false,
+		NotificationGroupID: 0,
+		Duration:            duration,
+		LatencyNotify:       false,
+		MinLatency:          0,
+		MaxLatency:          0,
+		EnableShowInService: true,
+		EnableTriggerTask:   false,
+		RecoverTriggerTasks: []uint64{},
+		FailTriggerTasks:    []uint64{},
+	}
+
+	if err := netwatchSaveService(service); err != nil {
+		return nil, err
+	}
+
+	return &netwatchTargetResponse{
+		ServiceID: service.ID,
+		Name:      service.Name,
+		Target:    service.Target,
+		Type:      service.Type,
+		TypeName:  netwatchServiceTypeName(service.Type),
+		Created:   true,
+	}, nil
+}
+
+func discoverNetwatchMihomoTargets(c *gin.Context) (*netwatchMihomoDiscoverResponse, error) {
+	var form netwatchMihomoDiscoverForm
+	if err := c.ShouldBindJSON(&form); err != nil {
+		return nil, err
+	}
+	controller, err := netwatchNormalizeControllerURL(form.Controller)
+	if err != nil {
+		return nil, err
+	}
+	limit := form.Limit
+	if limit <= 0 || limit > 100 {
+		limit = 60
+	}
+
+	req, err := http.NewRequest(http.MethodGet, controller+"/connections", nil)
+	if err != nil {
+		return nil, err
+	}
+	secret := strings.TrimSpace(form.Secret)
+	if secret != "" {
+		req.Header.Set("Authorization", "Bearer "+secret)
+	}
+
+	client := http.Client{Timeout: 6 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("mihomo controller returned %s", resp.Status)
+	}
+
+	var payload struct {
+		Connections []map[string]any `json:"connections"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&payload); err != nil {
+		return nil, err
+	}
+
+	targets := make([]netwatchMihomoTarget, 0)
+	seen := make(map[string]int)
+	for _, conn := range payload.Connections {
+		target, ok := netwatchMihomoConnectionTarget(conn)
+		if !ok {
+			continue
+		}
+		key := strconvFormatUint(uint64(target.Type)) + "|" + strings.ToLower(target.Target)
+		if idx, ok := seen[key]; ok {
+			targets[idx].Count++
+			continue
+		}
+		target.Count = 1
+		seen[key] = len(targets)
+		targets = append(targets, target)
+		if len(targets) >= limit {
+			break
+		}
+	}
+
+	return &netwatchMihomoDiscoverResponse{Targets: targets}, nil
+}
+
+func netwatchNormalizeMonitorTarget(input string) (string, uint8, error) {
+	text := strings.TrimSpace(input)
+	if text == "" {
+		return "", 0, fmt.Errorf("target is required")
+	}
+	if strings.ContainsAny(text, "\r\n\t ") {
+		return "", 0, fmt.Errorf("target cannot contain whitespace")
+	}
+	if strings.Contains(text, "://") {
+		parsed, err := url.Parse(text)
+		if err != nil {
+			return "", 0, fmt.Errorf("invalid target URL")
+		}
+		if parsed.Host == "" {
+			return "", 0, fmt.Errorf("target URL must include host")
+		}
+		text = parsed.Host
+	}
+	text = strings.TrimSuffix(text, "/")
+
+	host, port, hasPort, err := netwatchSplitMonitorHostPort(text)
+	if err != nil {
+		return "", 0, err
+	}
+	if hasPort {
+		return netwatchJoinHostPort(host, port), model.TaskTypeTCPPing, nil
+	}
+	if strings.ContainsAny(text, "/?#") {
+		return "", 0, fmt.Errorf("ICMP target must be a host or IP without path")
+	}
+	host = strings.Trim(text, "[]")
+	if host == "" {
+		return "", 0, fmt.Errorf("target host is required")
+	}
+	return host, model.TaskTypeICMPPing, nil
+}
+
+func netwatchSplitMonitorHostPort(text string) (string, string, bool, error) {
+	host, port, err := net.SplitHostPort(text)
+	if err == nil {
+		if err := netwatchValidatePort(port); err != nil {
+			return "", "", false, err
+		}
+		host = strings.Trim(host, "[]")
+		if host == "" {
+			return "", "", false, fmt.Errorf("target host is required")
+		}
+		return host, port, true, nil
+	}
+	if strings.Count(text, ":") == 1 {
+		parts := strings.SplitN(text, ":", 2)
+		if parts[0] != "" && netwatchValidatePort(parts[1]) == nil {
+			return parts[0], parts[1], true, nil
+		}
+		if parts[0] != "" && parts[1] != "" {
+			return "", "", false, fmt.Errorf("invalid TCP port")
+		}
+	}
+	if strings.HasPrefix(text, "[") && strings.Contains(text, "]") {
+		return "", "", false, fmt.Errorf("invalid host:port target")
+	}
+	return "", "", false, nil
+}
+
+func netwatchValidatePort(port string) error {
+	n, err := strconv.Atoi(strings.TrimSpace(port))
+	if err != nil || n < 1 || n > 65535 {
+		return fmt.Errorf("invalid TCP port")
+	}
+	return nil
+}
+
+func netwatchJoinHostPort(host, port string) string {
+	host = strings.Trim(host, "[]")
+	if strings.Contains(host, ":") {
+		return net.JoinHostPort(host, port)
+	}
+	return host + ":" + port
+}
+
+func netwatchDefaultTargetName(target string, taskType uint8) string {
+	switch taskType {
+	case model.TaskTypeTCPPing:
+		return "TCP " + target
+	default:
+		return "Ping " + target
+	}
+}
+
+func netwatchFindExistingTarget(taskType uint8, target string) *model.Service {
+	for _, service := range singleton.ServiceSentinelShared.GetSortedList() {
+		if service == nil || strings.HasPrefix(service.Name, netwatchPeerServicePrefix) {
+			continue
+		}
+		if service.Type == taskType && strings.EqualFold(strings.TrimSpace(service.Target), target) {
+			return service
+		}
+	}
+	return nil
+}
+
+func netwatchNormalizeControllerURL(input string) (string, error) {
+	text := strings.TrimSpace(input)
+	if text == "" {
+		return "", fmt.Errorf("mihomo controller URL is required")
+	}
+	if !strings.Contains(text, "://") {
+		text = "http://" + text
+	}
+	parsed, err := url.Parse(text)
+	if err != nil || parsed.Host == "" {
+		return "", fmt.Errorf("invalid mihomo controller URL")
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "", fmt.Errorf("mihomo controller URL must use http or https")
+	}
+	parsed.Path = strings.TrimRight(parsed.Path, "/")
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	return strings.TrimRight(parsed.String(), "/"), nil
+}
+
+func netwatchMihomoConnectionTarget(conn map[string]any) (netwatchMihomoTarget, bool) {
+	metadata, _ := conn["metadata"].(map[string]any)
+	if metadata == nil {
+		return netwatchMihomoTarget{}, false
+	}
+	network := strings.ToLower(netwatchAnyString(metadata["network"]))
+	host := netwatchAnyString(metadata["destinationIP"])
+	if host == "" {
+		host = netwatchAnyString(metadata["host"])
+	}
+	port := netwatchAnyString(metadata["destinationPort"])
+	if host == "" {
+		return netwatchMihomoTarget{}, false
+	}
+	target := host
+	taskType := uint8(model.TaskTypeICMPPing)
+	if network == "tcp" && port != "" && netwatchValidatePort(port) == nil {
+		target = netwatchJoinHostPort(host, port)
+		taskType = model.TaskTypeTCPPing
+	}
+	chains := netwatchAnyStringSlice(conn["chains"])
+	return netwatchMihomoTarget{
+		Target:   target,
+		Type:     taskType,
+		TypeName: netwatchServiceTypeName(taskType),
+		Host:     host,
+		Port:     port,
+		Network:  network,
+		Rule:     netwatchAnyString(conn["rule"]),
+		Chain:    strings.Join(chains, " / "),
+		Process:  netwatchAnyString(metadata["process"]),
+	}, true
+}
+
+func netwatchAnyString(value any) string {
+	switch v := value.(type) {
+	case string:
+		return strings.TrimSpace(v)
+	case float64:
+		if v == float64(int64(v)) {
+			return strconv.FormatInt(int64(v), 10)
+		}
+		return strconv.FormatFloat(v, 'f', -1, 64)
+	case int:
+		return strconv.Itoa(v)
+	case int64:
+		return strconv.FormatInt(v, 10)
+	case uint64:
+		return strconv.FormatUint(v, 10)
+	default:
+		return ""
+	}
+}
+
+func netwatchAnyStringSlice(value any) []string {
+	items, ok := value.([]any)
+	if !ok {
+		return nil
+	}
+	result := make([]string, 0, len(items))
+	for _, item := range items {
+		if text := netwatchAnyString(item); text != "" {
+			result = append(result, text)
+		}
+	}
+	return result
 }
 
 func updateNetwatchPeerTarget(c *gin.Context) (*netwatchPeerState, error) {
@@ -324,6 +751,10 @@ func netwatchAutoPeerServices() []*model.Service {
 }
 
 func netwatchSavePeerService(service *model.Service) error {
+	return netwatchSaveService(service)
+}
+
+func netwatchSaveService(service *model.Service) error {
 	if service.ID == 0 {
 		if err := singleton.DB.Create(service).Error; err != nil {
 			return newGormError("%v", err)
@@ -358,6 +789,183 @@ func netwatchServerIP(server *model.Server) string {
 		return server.GeoIP.IP.IPv4Addr
 	}
 	return server.GeoIP.IP.IPv6Addr
+}
+
+func netwatchServerIPVersions(server *model.Server) (string, string) {
+	if server == nil || server.GeoIP == nil {
+		return "", ""
+	}
+	return server.GeoIP.IP.IPv4Addr, server.GeoIP.IP.IPv6Addr
+}
+
+func netwatchServerBandwidthLabel(server *model.Server) string {
+	if server == nil {
+		return ""
+	}
+	for _, text := range []string{server.PublicNote, server.Name} {
+		if label := netwatchServerBandwidthFromText(text); label != "" {
+			return label
+		}
+	}
+	return ""
+}
+
+func netwatchServerRemainingLabel(server *model.Server) string {
+	if server == nil {
+		return ""
+	}
+	now := time.Now()
+	for _, text := range []string{server.PublicNote, server.Name} {
+		if label := netwatchServerRemainingFromText(text, now); label != "" {
+			return label
+		}
+	}
+	return ""
+}
+
+func netwatchServerBandwidthFromText(text string) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	lowerText := strings.ToLower(text)
+	for _, marker := range []string{"bandwidth=", "bandwidth:", "带宽=", "带宽:"} {
+		idx := strings.Index(lowerText, strings.ToLower(marker))
+		if idx < 0 {
+			continue
+		}
+		return netwatchCleanBandwidthLabel(text[idx+len(marker):], false)
+	}
+	if idx := strings.LastIndex(text, "@"); idx >= 0 {
+		return netwatchCleanBandwidthLabel(text[idx+1:], true)
+	}
+	return ""
+}
+
+func netwatchCleanBandwidthLabel(text string, stopAtSpace bool) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	end := strings.IndexFunc(text, func(r rune) bool {
+		if r == ',' || r == '，' || r == ';' || r == '；' || r == '|' || r == '/' || r == '[' || r == ']' || r == '(' || r == ')' || r == '（' || r == '）' {
+			return true
+		}
+		return stopAtSpace && unicode.IsSpace(r)
+	})
+	if end >= 0 {
+		text = text[:end]
+	}
+	text = strings.TrimSpace(text)
+	if len([]rune(text)) > 32 {
+		return ""
+	}
+	return text
+}
+
+func netwatchServerRemainingFromText(text string, now time.Time) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	type marker struct {
+		text       string
+		isDuration bool
+	}
+	markers := []marker{
+		{text: "remaining=", isDuration: true},
+		{text: "remaining:", isDuration: true},
+		{text: "remain=", isDuration: true},
+		{text: "remain:", isDuration: true},
+		{text: "days=", isDuration: true},
+		{text: "days:", isDuration: true},
+		{text: "剩余=", isDuration: true},
+		{text: "剩余:", isDuration: true},
+		{text: "expire="},
+		{text: "expire:"},
+		{text: "expires="},
+		{text: "expires:"},
+		{text: "expiry="},
+		{text: "expiry:"},
+		{text: "到期="},
+		{text: "到期:"},
+		{text: "有效期="},
+		{text: "有效期:"},
+	}
+	lowerText := strings.ToLower(text)
+	for _, marker := range markers {
+		idx := strings.Index(lowerText, strings.ToLower(marker.text))
+		if idx < 0 {
+			continue
+		}
+		value := netwatchCleanMetadataValue(text[idx+len(marker.text):])
+		if marker.isDuration {
+			if days := netwatchParseDays(value); days >= 0 {
+				return fmt.Sprintf("余 %d 天", days)
+			}
+			continue
+		}
+		if label := netwatchExpiryLabel(value, now); label != "" {
+			return label
+		}
+	}
+	return ""
+}
+
+func netwatchCleanMetadataValue(text string) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	end := strings.IndexFunc(text, func(r rune) bool {
+		return unicode.IsSpace(r) || r == ',' || r == '，' || r == ';' || r == '；' || r == '|' || r == '[' || r == ']' || r == '(' || r == ')' || r == '（' || r == '）'
+	})
+	if end >= 0 {
+		text = text[:end]
+	}
+	return strings.TrimSpace(text)
+}
+
+func netwatchParseDays(text string) int {
+	text = strings.ToLower(strings.TrimSpace(text))
+	for _, suffix := range []string{"days", "day", "d", "天"} {
+		text = strings.TrimSpace(strings.TrimSuffix(text, suffix))
+	}
+	n, err := strconv.Atoi(text)
+	if err != nil || n < 0 {
+		return -1
+	}
+	return n
+}
+
+func netwatchExpiryLabel(text string, now time.Time) string {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return ""
+	}
+	layouts := []string{"2006-01-02", "2006/01/02", "2006.01.02", time.RFC3339}
+	for _, layout := range layouts {
+		expire, err := time.ParseInLocation(layout, text, time.Local)
+		if err != nil {
+			continue
+		}
+		expire = time.Date(expire.Year(), expire.Month(), expire.Day(), 23, 59, 59, 0, time.Local)
+		days := int(expire.Sub(now).Hours()/24) + 1
+		if days < 0 {
+			return "已到期"
+		}
+		return fmt.Sprintf("余 %d 天", days)
+	}
+	return ""
+}
+
+func netwatchTruthy(text string) bool {
+	switch strings.ToLower(strings.TrimSpace(text)) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func netwatchPeerTargetIP(server *model.Server, serverMap map[uint64]*model.Server) string {
