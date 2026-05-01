@@ -1,7 +1,7 @@
 ﻿{
   "about": {
-    "ai": "Proses pengembangan proyek vps-netwatch didukung oleh alat kecerdasan buatan. Alat-alat ini digunakan untuk menjalankan tugas seperti pembuatan kode, refactoring, dan debugging, untuk meningkatkan efisiensi pengembangan dan kualitas kode. Semua kode dan saran yang dihasilkan oleh AI telah diperiksa dan divalidasi oleh pengembang manusia.",
-    "open_source": "vps-netwatch bersifat open source berdasarkan lisensi MIT dan dibangun menggunakan perangkat lunak open source berikut:",
+    "ai": "Proses pengembangan proyek Komari didukung oleh alat kecerdasan buatan. Alat-alat ini digunakan untuk menjalankan tugas seperti pembuatan kode, refactoring, dan debugging, untuk meningkatkan efisiensi pengembangan dan kualitas kode. Semua kode dan saran yang dihasilkan oleh AI telah diperiksa dan divalidasi oleh pengembang manusia.",
+    "open_source": "Komari bersifat open source berdasarkan lisensi MIT dan dibangun menggunakan perangkat lunak open source berikut:",
     "open_source_title": "Lisensi Perangkat Lunak Open Source",
     "readme_open_in_new_tab": "Buka di tab baru",
     "title": "Tentang"
@@ -104,7 +104,7 @@
     "nodeTable": {
       "addNode": "Tambah Node",
       "autoRenewal": "Perpanjangan Otomatis",
-      "autoRenewalDescription": "Jika server kedaluwarsa dan masih online, vps-netwatch akan otomatis mengatur waktu kedaluwarsa ke bulan (atau tahun) berikutnya.",
+      "autoRenewalDescription": "Jika server kedaluwarsa dan masih online, Komari akan otomatis mengatur waktu kedaluwarsa ke bulan (atau tahun) berikutnya.",
       "billing": "Penagihan",
       "billingCycle": "Siklus Penagihan",
       "billingCycleTips": "<b>Aturan Siklus Penagihan</b><br/> <br/> <b>Menurut Siklus yang Ditetapkan (Perpanjangan Kalender)</b><br/> Ketika jumlah hari yang dimasukkan mendekati nilai dari rencana yang ditetapkan (seperti pembayaran bulanan, triwulanan, tahunan), perpanjangan akan dilakukan sesuai dengan <b>Siklus Kalender</b> yang sesuai.<br/> - Nilai umum: 30 (bulanan), 92 (triwulanan), 365 (tahunan), 730 (dua tahun) dan sebagainya.<br/> - Contoh: Masukkan 30, layanan diperpanjang dari 15 Maret, tanggal kedaluwarsa baru adalah 15 April.<br/> <br/> <b>Menurut Jumlah Hari Kustom</b><br/> Ketika jumlah hari lain dimasukkan (seperti 7, 45, 100), perpanjangan akan dilakukan secara ketat sesuai dengan jumlah hari.<br/> - Contoh: Masukkan 45, layanan diperpanjang dari 15 Maret, tanggal kedaluwarsa baru adalah 29 April (setelah 45 hari).<br/> <br/> <b>Pembayaran Sekali</b><br/> Masukkan -1 untuk menunjukkan pembayaran sekali.",
@@ -163,9 +163,9 @@
       "expire_time_description": "Atur berapa hari sebelumnya notifikasi pengingat akan dikirim sebelum masa kedaluwarsa.",
       "expire_title": "Notifikasi Kedaluwarsa",
       "login": "Notifikasi Masuk",
-      "login_description": "Kirim notifikasi saat sesi baru masuk ke vps-netwatch.",
+      "login_description": "Kirim notifikasi saat sesi baru masuk ke Komari.",
       "traffic": "Penggunaan Trafik",
-      "traffic_description": "vps-netwatch akan mengirim notifikasi ketika penggunaan trafik server mencapai persentase tertentu, dengan pengingat setiap kenaikan 5%. Jika tidak ada batas trafik yang ditetapkan, maka tidak ada notifikasi yang dikirim. Atur ke 0 untuk menonaktifkan pengingat trafik."
+      "traffic_description": "Komari akan mengirim notifikasi ketika penggunaan trafik server mencapai persentase tertentu, dengan pengingat setiap kenaikan 5%. Jika tidak ada batas trafik yang ditetapkan, maka tidak ada notifikasi yang dikirim. Atur ke 0 untuk menonaktifkan pengingat trafik."
     }
   },
   "chart": {
@@ -267,7 +267,7 @@
     "name": "Nama",
     "none": "Tidak ada",
     "once": "Sekali",
-    "private_site": "Ini adalah situs vps-netwatch privat. Silakan masuk terlebih dahulu.",
+    "private_site": "Ini adalah situs Komari privat. Silakan masuk terlebih dahulu.",
     "quarterly": "Triwulanan",
     "quinquennial": "Lima Tahunan",
     "real_time": "Waktu Nyata",
@@ -296,6 +296,11 @@
   "copy_success": "Berhasil disalin!",
   "current_online": "Sedang online",
   "current_time": "Waktu saat ini",
+  "avg_load": "Beban rata-rata",
+  "expiring_soon": "Segera kadaluarsa",
+  "expiring_soon_count": "{{count}} dalam 7 hari",
+  "expiring_soon_none": "Tidak ada",
+  "monthly_traffic": "Bulan ini",
   "delete": "Hapus",
   "exec": {
     "allCompleted": "Semua tugas telah selesai dieksekusi",
@@ -324,7 +329,7 @@
     "title": "Eksekusi Jarak Jauh"
   },
   "go_to_home": "Kembali ke Beranda",
-  "home_title": "Pemantau vps-netwatch",
+  "home_title": "Pemantau Komari",
   "just_now": "Baru saja",
   "loadAlert": {
     "metric": "Metrik",
@@ -337,7 +342,7 @@
     "title": "Log"
   },
   "login": {
-    "desc": "Masuk ke panel kontrol vps-netwatch.",
+    "desc": "Masuk ke panel kontrol Komari.",
     "login_with": "Masuk dengan {{provider}}",
     "login_with_github": "Masuk dengan GitHub",
     "password": "Kata Sandi",
@@ -427,7 +432,7 @@
     "can_install": "Dapat Diinstal",
     "install": "Instal",
     "install_prompt_desc": "Tambahkan ke layar utama untuk akses cepat",
-    "install_prompt_title": "Instal vps-netwatch",
+    "install_prompt_title": "Instal Komari",
     "install_status": "Status Instalasi",
     "installed": "Terinstal",
     "installed_hint": "Aplikasi telah terinstal di perangkat Anda, Anda dapat mengaksesnya dengan cepat dari layar utama.",
@@ -519,9 +524,9 @@
     "invalid_number": "Angka tidak valid",
     "missing_required_fields": "Silakan isi kolom yang wajib: {{fieldNames}}",
     "compatible_agent": {
-      "description": "Opsi kompatibilitas untuk compatible agent, vps-netwatch hanya dapat menangani pemantauan dasar dan tidak dapat menggunakan fitur seperti deteksi keterlambatan, kontrol jarak jauh, NAT, dan penetrasi internal. Fitur hiburan, tidak ada rencana pemeliharaan di masa depan. (Penggemar NTR)",
+      "description": "Opsi kompatibilitas untuk compatible agent, Komari hanya dapat menangani pemantauan dasar dan tidak dapat menggunakan fitur seperti deteksi keterlambatan, kontrol jarak jauh, NAT, dan penetrasi internal. Fitur hiburan, tidak ada rencana pemeliharaan di masa depan. (Penggemar NTR)",
       "enabled": "Aktifkan Port gRpc",
-      "enabled_description": "Aktifkan port gRpc, lalu compatible agent Agent dapat terhubung ke vps-netwatch, dan compatible agent Agent akan terdaftar secara otomatis. Untuk detail startup, silakan cek log.",
+      "enabled_description": "Aktifkan port gRpc, lalu compatible agent Agent dapat terhubung ke Komari, dan compatible agent Agent akan terdaftar secara otomatis. Untuk detail startup, silakan cek log.",
       "listen": "Alamat Listening gRpc",
       "listen_description": "Alamat listening gRpc",
       "title": "compatible agent"
@@ -554,7 +559,7 @@
       "smtp_receiver": "Email Penerima",
       "smtp_sender": "Email Pengirim",
       "smtp_ssl": "Aktifkan SSL",
-      "smtp_tips": "Silakan uji terlebih dahulu apakah server yang menjalankan vps-netwatch dapat mengirim email. Anda dapat menggunakan '{{command}}' untuk menguji.",
+      "smtp_tips": "Silakan uji terlebih dahulu apakah server yang menjalankan Komari dapat mengirim email. Anda dapat menggunakan '{{command}}' untuk menguji.",
       "smtp_title": "Konfigurasi SMTP",
       "smtp_username": "Nama Pengguna",
       "telegram": {
@@ -569,7 +574,7 @@
       "telegram_endpoint": "Endpoint",
       "telegram_title": "Konfigurasi Telegram",
       "template": "Template pemberitahuan pesan",
-      "template_description": "vps-netwatch akan mengirim pemberitahuan sesuai dengan template pemberitahuan pesan",
+      "template_description": "Komari akan mengirim pemberitahuan sesuai dengan template pemberitahuan pesan",
       "test_description": "Kirim pesan uji coba",
       "test_title": "Kirim pesan uji coba",
       "title": "Notifikasi"
@@ -581,7 +586,7 @@
       "invalid_preserve_time": "Waktu tidak valid",
       "ping_record_preserve_time": "Periode penyimpanan data Ping",
       "record_preserve_time": "Periode penyimpanan",
-      "record_preserve_time_description": "vps-netwatch akan menyimpan catatan selama jumlah jam yang ditentukan dan membersihkannya setelah kadaluarsa.",
+      "record_preserve_time_description": "Komari akan menyimpan catatan selama jumlah jam yang ditentukan dan membersihkannya setelah kadaluarsa.",
       "record_preserve_time_label": "Periode penyimpanan data beban",
       "title": "Pencatatan"
     },

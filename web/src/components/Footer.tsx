@@ -61,7 +61,7 @@ const Footer = () => {
             }}
           ></span>
           <Text size="2" color="gray">
-            Powered by vps-netwatch.
+            Powered by Komari.
           </Text>
         </Text>
       ) : (
@@ -81,7 +81,7 @@ const Footer = () => {
             align={{ initial: "center", md: "start" }}
           >
             <Text size="2" color="gray">
-              Powered by vps-netwatch.
+              Powered by Komari.
             </Text>
             {buildTime && (
               <Text size="1" color="gray">

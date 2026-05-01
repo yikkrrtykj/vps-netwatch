@@ -206,7 +206,44 @@ func SaveClientReport(clientUUID string, report common.Report) (err error) {
 		return err
 	}
 
+	// 维护月流量基线：月份变更或客户端计数器回卷时，重置基线为当前累计值
+	if upErr := updateMonthlyTrafficBaseline(clientUUID, report.Network.TotalUp, report.Network.TotalDown, currentTime); upErr != nil {
+		// 基线维护失败不影响主流程
+		fmt.Printf("warn: failed to update monthly baseline for %s: %v\n", clientUUID, upErr)
+	}
+
 	return nil
+}
+
+// updateMonthlyTrafficBaseline 检查并维护节点的月流量基线。
+// 触发重置的两个条件：
+//  1. 当前月份与基线记录的月份不同（自然月翻页）
+//  2. 客户端累计计数小于基线（agent 重启导致计数器归零）
+func updateMonthlyTrafficBaseline(clientUUID string, totalUp, totalDown int64, now time.Time) error {
+	db := dbcore.GetDBInstance()
+	var client models.Client
+	if err := db.Select("uuid, monthly_baseline_up, monthly_baseline_down, monthly_baseline_at").
+		Where("uuid = ?", clientUUID).First(&client).Error; err != nil {
+		return err
+	}
+
+	baselineAt := client.MonthlyBaselineAt.ToTime()
+	monthChanged := baselineAt.IsZero() ||
+		baselineAt.Year() != now.Year() ||
+		baselineAt.Month() != now.Month()
+	counterRolled := totalUp < client.MonthlyBaselineUp ||
+		totalDown < client.MonthlyBaselineDown
+
+	if !monthChanged && !counterRolled {
+		return nil
+	}
+
+	return db.Model(&models.Client{}).Where("uuid = ?", clientUUID).
+		Updates(map[string]interface{}{
+			"monthly_baseline_up":   totalUp,
+			"monthly_baseline_down": totalDown,
+			"monthly_baseline_at":   models.FromTime(now),
+		}).Error
 }
 
 /*

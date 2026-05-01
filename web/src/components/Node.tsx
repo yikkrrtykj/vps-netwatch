@@ -7,13 +7,40 @@ import {
   Separator,
   IconButton,
 } from "@radix-ui/themes";
-import type { LiveData, Record } from "../types/LiveData";
+import type { LiveData, PingStat, Record } from "../types/LiveData";
 import UsageBar from "./UsageBar";
 import Flag from "./Flag";
+const Sparkline = React.lazy(() => import("./Sparkline"));
 import { useTranslation } from "react-i18next";
 import Tips from "./ui/tips";
 
 import { formatBytes } from "@/utils/unitHelper";
+
+// 从 live.ping 中挑出"最佳延迟"和"最高丢包"，给卡片头部一个一眼概览
+function pickPingHighlights(ping: { [taskId: string]: PingStat } | undefined) {
+  if (!ping) return { bestLatency: null as number | null, worstLoss: 0, label: "" };
+  const stats = Object.values(ping);
+  if (!stats.length) return { bestLatency: null, worstLoss: 0, label: "" };
+  let best: PingStat | null = null;
+  let worstLoss = 0;
+  for (const s of stats) {
+    if (s.latest >= 0 && (best === null || s.latest < best.latest)) best = s;
+    if (s.loss > worstLoss) worstLoss = s.loss;
+  }
+  return {
+    bestLatency: best?.latest ?? null,
+    worstLoss,
+    label: best?.name ?? "",
+  };
+}
+
+// 到期倒计时：返回剩余天数（< 0 表示已过期）
+function expirationDaysLeft(expiredAt: string | undefined | null): number | null {
+  if (!expiredAt) return null;
+  const ts = new Date(expiredAt).getTime();
+  if (!ts) return null;
+  return Math.floor((ts - Date.now()) / 86400000);
+}
 
 /** 格式化秒*/
 export function formatUptime(seconds: number, t: TFunction): string {
@@ -42,7 +69,8 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
     cpu: { usage: 0 },
     ram: { used: 0 },
     disk: { used: 0 },
-    network: { up: 0, down: 0, totalUp: 0, totalDown: 0 },
+    network: { up: 0, down: 0, totalUp: 0, totalDown: 0, monthlyUp: 0, monthlyDown: 0 },
+    ping: {},
   } as Record;
 
   const liveData = live || defaultLive;
@@ -58,6 +86,10 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
   const downloadSpeed = formatBytes(liveData.network.down);
   const totalUpload = formatBytes(liveData.network.totalUp);
   const totalDownload = formatBytes(liveData.network.totalDown);
+  const monthlyUpload = formatBytes(liveData.network.monthlyUp);
+  const monthlyDownload = formatBytes(liveData.network.monthlyDown);
+  const pingHighlight = pickPingHighlights(liveData.ping);
+  const daysLeft = expirationDaysLeft(basic.expired_at as unknown as string);
   //const totalTraffic = formatBytes(liveData.network.totalUp + liveData.network.totalDown);
   return (
     <Card
@@ -115,6 +147,33 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
           </Flex>
           <Flex gap="2" align="center" style={{ flex: "none" }}>
             {live?.message && <Tips color="#CE282E">{live.message}</Tips>}
+            {online && pingHighlight.bestLatency !== null && (
+              <Badge
+                color={
+                  pingHighlight.bestLatency > 200
+                    ? "red"
+                    : pingHighlight.bestLatency > 100
+                      ? "orange"
+                      : "green"
+                }
+                variant="soft"
+                size="1"
+                title={pingHighlight.label}
+              >
+                {pingHighlight.bestLatency}ms
+              </Badge>
+            )}
+            {online && pingHighlight.worstLoss > 0 && (
+              <Badge color="red" variant="soft" size="1">
+                {t("nodeCard.loss", { defaultValue: "丢" })}{" "}
+                {pingHighlight.worstLoss.toFixed(pingHighlight.worstLoss >= 10 ? 0 : 1)}%
+              </Badge>
+            )}
+            {daysLeft !== null && daysLeft >= 0 && daysLeft < 7 && (
+              <Badge color="red" variant="soft" size="1">
+                {t("nodeCard.expires_in_days", { count: daysLeft, defaultValue: `${daysLeft}天` })}
+              </Badge>
+            )}
             <MiniPingChartFloat
               uuid={basic.uuid}
               hours={24}
@@ -150,10 +209,30 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
           </Flex>
           <Flex className="md:flex-col flex-row md:gap-1 gap-4">
             {/* CPU Usage */}
-            <UsageBar label={t("nodeCard.cpu")} value={liveData.cpu.usage} />
+            <UsageBar
+              label={t("nodeCard.cpu")}
+              value={liveData.cpu.usage}
+              accessory={
+                online ? (
+                  <React.Suspense fallback={<div style={{ width: 64, height: 16 }} />}>
+                    <Sparkline uuid={basic.uuid} field="cpu" width={64} height={16} />
+                  </React.Suspense>
+                ) : null
+              }
+            />
 
             {/* Memory Usage */}
-            <UsageBar label={t("nodeCard.ram")} value={memoryUsagePercent} />
+            <UsageBar
+              label={t("nodeCard.ram")}
+              value={memoryUsagePercent}
+              accessory={
+                online ? (
+                  <React.Suspense fallback={<div style={{ width: 64, height: 16 }} />}>
+                    <Sparkline uuid={basic.uuid} field="ram" width={64} height={16} />
+                  </React.Suspense>
+                ) : null
+              }
+            />
             <Text
               className="md:block hidden"
               size="1"
@@ -212,6 +291,15 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
           )}
 
           <Flex justify="between" hidden={isMobile}>
+            <Text size="2" color="gray">
+              {t("monthly_traffic", { defaultValue: "本月流量" })}
+            </Text>
+            <Text size="2">
+              ↑ {monthlyUpload} ↓ {monthlyDownload}
+            </Text>
+          </Flex>
+
+          <Flex justify="between" hidden={isMobile}>
             <Text size="2" color="gray" className="flex items-center">
               {t("nodeCard.networkSpeed")}
             </Text>
@@ -233,6 +321,12 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
                 ↑ {totalUpload} ↓ {totalDownload}
               </Text>
             </Flex>
+          </Flex>
+          <Flex justify="between" gap="2" hidden={!isMobile}>
+            <Text size="2">{t("monthly_traffic", { defaultValue: "本月流量" })}</Text>
+            <Text size="2">
+              ↑ {monthlyUpload} ↓ {monthlyDownload}
+            </Text>
           </Flex>
           {basic.traffic_limit > 0 && isMobile && (
             <UsageBar

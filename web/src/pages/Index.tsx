@@ -61,6 +61,9 @@ const Index = () => {
         regionOverview: true,
         trafficOverview: true,
         networkSpeed: true,
+        avgLoad: true,
+        expiringSoon: true,
+        monthlyTraffic: true,
       },
     );
 
@@ -143,6 +146,60 @@ const Index = () => {
           return `↑ ${formatSpeed(up)} / ↓ ${formatSpeed(down)}`;
         },
         visible: statusCardsVisibility.networkSpeed,
+      },
+      {
+        key: "avgLoad",
+        title: t("avg_load"),
+        getValue: () => {
+          const onlineSet = new Set(live_data?.data?.online ?? []);
+          const data = live_data?.data?.data ?? {};
+          const loads = Object.entries(data)
+            .filter(([uuid]) => onlineSet.has(uuid))
+            .map(([, n]) => n.load?.load1 ?? 0);
+          if (!loads.length) return "0.00";
+          return (loads.reduce((a, b) => a + b, 0) / loads.length).toFixed(2);
+        },
+        visible: statusCardsVisibility.avgLoad,
+      },
+      {
+        key: "expiringSoon",
+        title: t("expiring_soon"),
+        getValue: () => {
+          const now = Date.now();
+          const sevenDays = 7 * 86400 * 1000;
+          const count = (nodeList ?? []).filter((n) => {
+            if (!n.expired_at) return false;
+            const ts = new Date(n.expired_at).getTime();
+            return ts > now && ts - now < sevenDays;
+          }).length;
+          return count > 0
+            ? t("expiring_soon_count", { count, defaultValue: `${count} 个 7 天内` })
+            : t("expiring_soon_none", { defaultValue: "无" });
+        },
+        visible: statusCardsVisibility.expiringSoon,
+      },
+      {
+        key: "monthlyTraffic",
+        title: t("monthly_traffic"),
+        getValue: () => {
+          const data = live_data?.data?.data;
+          const online = live_data?.data?.online;
+          if (!data || !online) return "↑ 0B / ↓ 0B";
+          const onlineSet = new Set(online);
+          const values = Object.entries(data)
+            .filter(([uuid]) => onlineSet.has(uuid))
+            .map(([, node]) => node);
+          const up = values.reduce(
+            (acc, node) => acc + (node.network.monthlyUp || 0),
+            0,
+          );
+          const down = values.reduce(
+            (acc, node) => acc + (node.network.monthlyDown || 0),
+            0,
+          );
+          return `↑ ${formatBytes(up)} / ↓ ${formatBytes(down)}`;
+        },
+        visible: statusCardsVisibility.monthlyTraffic,
       },
     ];
 

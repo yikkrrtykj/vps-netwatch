@@ -14,7 +14,6 @@ import type { LiveData } from "../types/LiveData";
 import { NodeGrid } from "./Node";
 const NodeTable = React.lazy(() => import("./NodeTable"));
 import { isRegionMatch } from "@/utils/regionHelper";
-import TargetWizard from "./TargetWizard";
 import "./NodeDisplay.css";
 
 export type ViewMode = "grid" | "table";
@@ -202,7 +201,6 @@ const NodeDisplay: React.FC<NodeDisplayProps> = ({ nodes, liveData }) => {
         </Flex>
       )}
       {/* 搜索结果统计 */}
-      <TargetWizard nodes={nodes} />
       <Flex justify="between" align="center" className="mx-4 mb-2">
         {searchTerm.trim() ? (
           <Text size="2" color="gray">

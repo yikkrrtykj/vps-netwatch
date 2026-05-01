@@ -1,14 +1,14 @@
 ﻿export const Eula = `法律声明与合规指引
 
 重要提示
-  本文档旨在明确 vps-netwatch（“本软件”）的合法使用边界、用户权利义务与风险提示。请在下载、安装或使用本软件前，务必完整阅读并理解本声明的全部内容。一经下载、安装或使用，即视为您已理解并同意受本声明约束。
+  本文档旨在明确 Komari（"本软件"）的合法使用边界、用户权利义务与风险提示。请在下载、安装或使用本软件前，务必完整阅读并理解本声明的全部内容。一经下载、安装或使用，即视为您已理解并同意受本声明约束。
 
 1. 适用范围
   本声明适用于所有直接或间接获取、安装、访问或使用本软件及其衍生工具、文档与服务的自然人、法人或其他组织。
 
 2. 定义
   - “您/用户”：指任何以任何方式使用本软件的主体。
-  - “本软件/vps-netwatch”：指开源发布的 vps-netwatch 及相关组件、示例、脚本与文档。
+  - "本软件/Komari"：指开源发布的 Komari 及相关组件、示例、脚本与文档。
   - “目标设备”：指被您管理或操作的任何主机、服务器、虚拟机、容器或网络设备。
 
 3. 许可与使用边界
@@ -81,7 +81,7 @@
 生效日期：2025-10-20
 `;
 
-export const MIT_LICENSE = `Copyright (C) 2025 vps-netwatch
+export const MIT_LICENSE = `Copyright (C) 2025 Komari
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 

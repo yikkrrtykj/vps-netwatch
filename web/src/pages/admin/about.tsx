@@ -147,7 +147,7 @@ export default function AboutPage() {
                 <div className="text-foreground flex flex-col gap-4">
                   <SettingCardCollapse
                     title="MIT License"
-                    description="Copyright (C) 2025 vps-netwatch"
+                    description="Copyright (C) 2025 Komari"
                   >
                     <pre className="text-wrap">{MIT_LICENSE}</pre>
                   </SettingCardCollapse>

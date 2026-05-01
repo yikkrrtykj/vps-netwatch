@@ -1,37 +1,39 @@
-﻿# vps-netwatch
+﻿# Komari
 
-vps-netwatch is a VPS monitoring panel adjusted for route
-latency, traffic, remaining time, and lightweight server status checks.
+Komari is a lightweight, self-hosted server monitoring panel for VPS fleets.
+It surfaces live CPU / memory / disk / network / load metrics, monthly traffic
+usage, latency and packet-loss probes, and per-server expiration reminders on
+a single dashboard.
 
-## Current Direction
+## Highlights
 
-- Card and table views focus on VPS status, live network speed, traffic quota,
-  remaining time, IPv4/IPv6 labels, and latency summaries.
-- The target wizard can create ICMP checks from `IP` / domain input and TCP
-  checks from `IP:port`.
-- The mihomo / Clash helper can read current connections and add discovered
-  game server targets to monitoring.
+- Card and table views with live status, network speed, monthly traffic, and
+  remaining subscription time.
+- Built-in ICMP / TCP / HTTP latency probes with per-task loss and percentile
+  tracking.
+- Per-server detail page with historical CPU / RAM / load / network charts and
+  multi-target ping comparison.
 
 ## Docker
 
 The GitHub Actions workflow publishes images to:
 
 ```bash
-ghcr.io/yikkrrtykj/vps-netwatch
+ghcr.io/komari-monitor/komari
 ```
 
 Run the panel:
 
 ```bash
 docker run -d \
-  --name vps-netwatch \
+  --name komari \
   --restart unless-stopped \
   -p 25774:25774 \
   -v ./data:/app/data \
-  ghcr.io/yikkrrtykj/vps-netwatch:latest
+  ghcr.io/komari-monitor/komari:latest
 ```
 
 ## Notes
 
-The working rollback point before this migration is tagged as
-`checkpoint-working-20260430`.
+The working rollback point before the latest cleanup is tagged as
+`pre-komari-cleanup-20260502`.

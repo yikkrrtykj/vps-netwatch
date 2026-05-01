@@ -1,15 +1,16 @@
 ﻿import { Box, Flex, Text } from "@radix-ui/themes";
-import React from "react";
+import React, { type ReactNode } from "react";
 
 interface UsageBarProps {
   value: number; // Utilization percentage (0–100)
   label: string; // Label for the bar (e.g., "CPU", "Memory", "Disk")
   compact?: boolean; // Whether to show in compact mode (for tables)
   max?: number; // Maximum value for the bar (e.g., total RAM, total disk space)
+  accessory?: ReactNode; // Optional element rendered before the percentage (e.g. sparkline)
 }
 
 const UsageBar = React.memo(
-  ({ value, label, compact = false, max = 100 }: UsageBarProps) => {
+  ({ value, label, compact = false, max = 100, accessory }: UsageBarProps) => {
     // Ensure value is between 0 and 100
     const clampedValue = Math.min(Math.max(value, 0), max);
 
@@ -54,13 +55,16 @@ const UsageBar = React.memo(
 
     return (
       <Flex direction="column" gap="1" style={{ width: "100%" }}>
-        <Flex justify="between" align="center">
+        <Flex justify="between" align="center" gap="2">
           <Text size="2" color="gray">
             {label}
           </Text>
-          <Text size="2" weight="medium">
-            {clampedValue.toFixed(1)}%
-          </Text>
+          <Flex gap="2" align="center">
+            {accessory}
+            <Text size="2" weight="medium">
+              {clampedValue.toFixed(1)}%
+            </Text>
+          </Flex>
         </Flex>
         <Box
           style={{

@@ -29,9 +29,9 @@ var (
 )
 
 var RootCmd = &cobra.Command{
-	Use:   "vps-netwatch",
-	Short: "vps-netwatch is a lightweight VPS monitoring tool",
-	Long: `vps-netwatch is a lightweight VPS monitoring tool with latency,
+	Use:   "komari",
+	Short: "Komari is a lightweight VPS monitoring tool",
+	Long: `Komari is a lightweight VPS monitoring tool with latency,
 traffic, and server status views.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.SetArgs([]string{"server"})

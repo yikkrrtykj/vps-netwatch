@@ -38,6 +38,10 @@ type Client struct {
 	Hidden           bool      `json:"hidden" gorm:"default:false"`
 	TrafficLimit     int64     `json:"traffic_limit" gorm:"type:bigint"`
 	TrafficLimitType string    `json:"traffic_limit_type" gorm:"type:varchar(10);default:'max'"` // 流量阈值类型：sum max min up down
+	// 月流量基线：每月初记录当月起始的累计上下行字节，用于推算"本月已用"
+	MonthlyBaselineUp   int64     `json:"monthly_baseline_up" gorm:"type:bigint;default:0"`
+	MonthlyBaselineDown int64     `json:"monthly_baseline_down" gorm:"type:bigint;default:0"`
+	MonthlyBaselineAt   LocalTime `json:"monthly_baseline_at" gorm:"type:timestamp"`
 	CreatedAt        LocalTime `json:"created_at"`
 	UpdatedAt        LocalTime `json:"updated_at"`
 }

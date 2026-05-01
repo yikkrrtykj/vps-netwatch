@@ -79,7 +79,7 @@ func Static(r *gin.RouterGroup, noRoute func(handlers ...gin.HandlerFunc)) {
 			config.DescriptionKey: "A simple server monitor tool.",
 			config.CustomHeadKey:  "",
 			config.CustomBodyKey:  "",
-			config.SitenameKey:    "vps-netwatch",
+			config.SitenameKey:    "Komari",
 			config.ThemeKey:       DefaultTheme,
 		})
 		return cfg
@@ -162,7 +162,7 @@ func Static(r *gin.RouterGroup, noRoute func(handlers ...gin.HandlerFunc)) {
 		// 执行 HTML 内容替换
 		htmlStr := string(content)
 		replacer := strings.NewReplacer(
-			"<title>vps-netwatch</title>", "<title>"+cfg[config.SitenameKey].(string)+"</title>",
+			"<title>Komari</title>", "<title>"+cfg[config.SitenameKey].(string)+"</title>",
 			"A simple server monitor tool.", cfg[config.DescriptionKey].(string),
 			"</head>", cfg[config.CustomHeadKey].(string)+"</head>",
 			"</body>", cfg[config.CustomBodyKey].(string)+"</body>",

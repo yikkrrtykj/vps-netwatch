@@ -77,6 +77,8 @@ export const LiveDataProvider: React.FC<{ children: React.ReactNode }> = ({
               down: rec.net_in ?? 0,
               totalUp: rec.net_total_out ?? rec.net_total_up ?? 0,
               totalDown: rec.net_total_in ?? rec.net_total_down ?? 0,
+              monthlyUp: rec.monthly_up ?? 0,
+              monthlyDown: rec.monthly_down ?? 0,
             },
             connections: {
               tcp: rec.connections ?? 0,
@@ -90,6 +92,7 @@ export const LiveDataProvider: React.FC<{ children: React.ReactNode }> = ({
             process: rec.process ?? 0,
             message: "",
             updated_at: rec.time ?? 0,
+            ping: rec.ping ?? {},
           };
         }
 

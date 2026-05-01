@@ -13,7 +13,7 @@ const NavBar = () => {
   return (
     <nav className="nav-bar flex rounded-b-lg items-center gap-2 md:gap-3 max-h-16 justify-end min-w-full p-2 px-4">
       <div className="mr-auto flex items-center min-w-0">
-        {/* <img src="/assets/logo.png" alt="vps-netwatch Logo" className="w-10 object-cover mr-2 self-center"/> */}
+        {/* <img src="/assets/logo.png" alt="Komari Logo" className="w-10 object-cover mr-2 self-center"/> */}
         <Link to="/" className="flex items-center min-w-0">
           <span className="font-bold text-[clamp(1.25rem,5vw,1.875rem)] whitespace-nowrap truncate leading-tight">
             {publicInfo?.sitename}
@@ -28,7 +28,7 @@ const NavBar = () => {
             className="text-base font-bold whitespace-nowrap"
             style={{ color: "var(--accent-4)" }}
           >
-            vps-netwatch
+            Komari
           </span>
         </div>
       </div>
@@ -37,7 +37,7 @@ const NavBar = () => {
         <IconButton
           variant="soft"
           onClick={() => {
-            window.open("https://github.com/yikkrrtykj/vps-netwatch", "_blank");
+            window.open("https://github.com/komari-monitor/komari", "_blank");
           }}
         >
           <GitHubLogoIcon />

@@ -295,20 +295,17 @@ func getNodesLatestStatus(ctx context.Context, req *rpc.JsonRpcRequest) (any, *r
 		onlineSet[uuid] = true
 	}
 
+	// 一次性预取所有客户端，用于 hidden 过滤和月流量基线推算
+	allClients, _ := clients.GetAllClientBasicInfo()
+	clientByUUID := make(map[string]models.Client, len(allClients))
+	for _, c := range allClients {
+		clientByUUID[c.UUID] = c
+	}
+
 	// Hidden 过滤
 	if meta.Permission != "admin" {
-		cinfo, err := clients.GetAllClientBasicInfo()
-		if err != nil {
-			return nil, rpc.MakeError(rpc.InternalError, "Failed to get client info", err.Error())
-		}
-		hidden := make(map[string]bool, len(cinfo))
-		for _, c := range cinfo {
+		for uuid, c := range clientByUUID {
 			if c.Hidden {
-				hidden[c.UUID] = true
-			}
-		}
-		for uuid := range latest {
-			if hidden[uuid] {
 				delete(latest, uuid)
 			}
 		}
@@ -340,6 +337,8 @@ func getNodesLatestStatus(ctx context.Context, req *rpc.JsonRpcRequest) (any, *r
 		NetOut         int64               `json:"net_out"`
 		NetTotalUp     int64               `json:"net_total_up"`
 		NetTotalDown   int64               `json:"net_total_down"`
+		MonthlyUp      int64               `json:"monthly_up"`
+		MonthlyDown    int64               `json:"monthly_down"`
 		Process        int                 `json:"process"`
 		Connections    int                 `json:"connections"`
 		ConnectionsUdp int                 `json:"connections_udp"`
@@ -358,6 +357,18 @@ func getNodesLatestStatus(ctx context.Context, req *rpc.JsonRpcRequest) (any, *r
 			return
 		}
 		stats := getPingStatsForNode(uuid, pingTasks)
+		// 月流量：当前累计 - 月初基线（基线维护见 database/clients/report.go:updateMonthlyTrafficBaseline）
+		var monthlyUp, monthlyDown int64
+		if c, ok := clientByUUID[uuid]; ok {
+			monthlyUp = rep.Network.TotalUp - c.MonthlyBaselineUp
+			monthlyDown = rep.Network.TotalDown - c.MonthlyBaselineDown
+			if monthlyUp < 0 {
+				monthlyUp = 0
+			}
+			if monthlyDown < 0 {
+				monthlyDown = 0
+			}
+		}
 		rl := recordLike{
 			Client:         uuid,
 			Time:           models.FromTime(rep.UpdatedAt),
@@ -377,6 +388,8 @@ func getNodesLatestStatus(ctx context.Context, req *rpc.JsonRpcRequest) (any, *r
 			NetOut:         rep.Network.Up,
 			NetTotalUp:     rep.Network.TotalUp,
 			NetTotalDown:   rep.Network.TotalDown,
+			MonthlyUp:      monthlyUp,
+			MonthlyDown:    monthlyDown,
 			Process:        rep.Process,
 			Connections:    rep.Connections.TCP + rep.Connections.UDP,
 			ConnectionsUdp: rep.Connections.UDP,

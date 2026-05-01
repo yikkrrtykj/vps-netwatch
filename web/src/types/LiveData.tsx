@@ -3,6 +3,16 @@
     data: { [key: string]: Record };
 };
 
+export type PingStat = {
+  name: string;
+  latest: number;
+  avg: number;
+  tail: number;
+  loss: number;
+  min: number;
+  max: number;
+};
+
 export type Record = {
   cpu: {
     usage: number;
@@ -26,6 +36,8 @@ export type Record = {
     down: number;
     totalUp: number;
     totalDown: number;
+    monthlyUp: number;
+    monthlyDown: number;
   };
   connections: {
     tcp: number;
@@ -46,6 +58,7 @@ export type Record = {
   process: number;
   message: string;
   updated_at: string;
+  ping: { [taskId: string]: PingStat };
 };
 
 export type LiveDataResponse = {

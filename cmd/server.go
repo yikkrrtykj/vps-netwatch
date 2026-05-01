@@ -314,12 +314,6 @@ func RunServer() {
 
 		}
 
-		netwatchGroup := adminAuthrized.Group("/vps-netwatch")
-		{
-			netwatchGroup.POST("/target", admin.AddNetwatchTarget)
-			netwatchGroup.POST("/mihomo/discover", admin.DiscoverMihomoTargets)
-		}
-
 	}
 
 	public.Static(r.Group("/"), func(handlers ...gin.HandlerFunc) {
