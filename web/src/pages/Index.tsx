@@ -14,7 +14,7 @@ import { formatBytes } from "@/utils/unitHelper";
 import { useLiveData } from "../contexts/LiveDataContext";
 import { useNodeList } from "@/contexts/NodeListContext";
 import Loading from "@/components/loading";
-import { Settings } from "lucide-react";
+import { Settings, X } from "lucide-react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
 
 // Intelligent speed formatting function
@@ -294,9 +294,17 @@ const Callouts = () => {
   const [t] = useTranslation();
   const { showCallout } = useLiveData();
   const ishttps = window.location.protocol === "https:";
+  const [httpsWarningDismissed, setHttpsWarningDismissed] = useLocalStorage(
+    "httpsWarningDismissed",
+    false,
+  );
   return (
     <Flex direction="column" gap="2" className="m-2">
-      <Callout.Root m="2" hidden={ishttps} color="red">
+      <Callout.Root
+        m="2"
+        hidden={ishttps || httpsWarningDismissed}
+        color="red"
+      >
         <Callout.Icon>
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -309,11 +317,22 @@ const Callouts = () => {
             />
           </svg>
         </Callout.Icon>
-        <Callout.Text>
-          <Text size="2" weight="medium">
-            {t("warn_https")}
-          </Text>
-        </Callout.Text>
+        <Flex justify="between" align="center" gap="2" style={{ flex: 1 }}>
+          <Callout.Text>
+            <Text size="2" weight="medium">
+              {t("warn_https")}
+            </Text>
+          </Callout.Text>
+          <IconButton
+            variant="ghost"
+            size="1"
+            color="red"
+            onClick={() => setHttpsWarningDismissed(true)}
+            aria-label={t("dismiss", { defaultValue: "关闭" })}
+          >
+            <X size={16} />
+          </IconButton>
+        </Flex>
       </Callout.Root>
       <Callout.Root m="2" hidden={showCallout} id="callout" color="tomato">
         <Callout.Icon>

@@ -5,7 +5,6 @@ export interface ClientFormData {
   token: string;
   remark: string;
   public_remark: string;
-  traffic_reset_day?: number;
 }
 
 export const schema = z.object({
@@ -26,7 +25,6 @@ export const schema = z.object({
   weight: z.number().optional(),
   price: z.number().optional(),
   expired_at: z.string().optional(),
-  traffic_reset_day: z.number().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
   token: z.string().optional(),
