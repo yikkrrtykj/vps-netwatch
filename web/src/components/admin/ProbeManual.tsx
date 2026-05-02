@@ -165,9 +165,17 @@ const ProbeManual: React.FC = () => {
               type="number"
               min={5}
               value={interval}
-              onChange={(e) =>
-                setInterval(Math.max(5, parseInt(e.target.value, 10) || 60))
-              }
+              onChange={(e) => {
+                // 输入期间不 clamp，允许用户从 0 输到 5/10/100
+                const v = parseInt(e.target.value, 10);
+                setInterval(Number.isFinite(v) ? v : 0);
+              }}
+              onBlur={() => {
+                // 失焦时再钳到合法范围
+                if (!Number.isFinite(interval) || interval < 5) {
+                  setInterval(60);
+                }
+              }}
             />
           </div>
           <div style={{ width: 200 }}>

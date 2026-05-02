@@ -313,11 +313,15 @@ const ClashHelper: React.FC = () => {
                     type="number"
                     min={5}
                     value={interval}
-                    onChange={(e) =>
-                      setInterval(
-                        Math.max(5, parseInt(e.target.value, 10) || 60),
-                      )
-                    }
+                    onChange={(e) => {
+                      const v = parseInt(e.target.value, 10);
+                      setInterval(Number.isFinite(v) ? v : 0);
+                    }}
+                    onBlur={() => {
+                      if (!Number.isFinite(interval) || interval < 5) {
+                        setInterval(60);
+                      }
+                    }}
                   />
                 </div>
                 <div style={{ width: 220 }}>

@@ -75,13 +75,48 @@ func GetAllPingTasks() ([]models.PingTask, error) {
 	return tasks, nil
 }
 
+// GetPingTasksByClient 返回该 client 实际参与的所有 ping 任务，考虑 Cover 字段：
+//   Cover=0 (include) → 仅 Clients 列表里的节点
+//   Cover=1 (all)     → 所有节点
+//   Cover=2 (exclude) → 不在 Clients 列表里的节点
+//
+// 之前实现只用 LIKE 匹配 Clients 字段，导致 Cover=1 的任务永远查不出来，
+// agent 拿不到任务列表 → 不会主动 ping，新加节点也不会自动加入。
 func GetPingTasksByClient(uuid string) []models.PingTask {
 	db := dbcore.GetDBInstance()
-	var tasks []models.PingTask
-	if err := db.Where("clients LIKE ?", `%"`+uuid+`"%`).Find(&tasks).Error; err != nil {
+	var allTasks []models.PingTask
+	if err := db.Find(&allTasks).Error; err != nil {
 		return nil
 	}
-	return tasks
+	result := make([]models.PingTask, 0, len(allTasks))
+	for _, t := range allTasks {
+		switch t.Cover {
+		case 1:
+			// 全部节点
+			result = append(result, t)
+		case 2:
+			// 排除模式：uuid 不在 Clients 列表则包含
+			excluded := false
+			for _, c := range t.Clients {
+				if c == uuid {
+					excluded = true
+					break
+				}
+			}
+			if !excluded {
+				result = append(result, t)
+			}
+		default:
+			// 仅指定列表
+			for _, c := range t.Clients {
+				if c == uuid {
+					result = append(result, t)
+					break
+				}
+			}
+		}
+	}
+	return result
 }
 
 func UpdatePingTaskOrder(order map[uint]int) error {
