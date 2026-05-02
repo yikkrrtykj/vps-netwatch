@@ -117,5 +117,22 @@ func executePingTask(ctx context.Context, task models.PingTask, onlineClients ma
 
 // ReloadPingSchedule 加载或重载时间表
 func ReloadPingSchedule(pingTasks []models.PingTask) error {
+	// 通知所有在线 agent 重新拉取任务清单
+	// 这样 cover=1 / cover=2 这类任务（agent 之前没在 client 列表里、不知道 task ID 存在）
+	// 才能立即被 agent 接受。否则 agent 会因为本地白名单校验丢弃未知 TaskID 的 ping 命令。
+	go broadcastPingTasksReload()
 	return manager.Reload(pingTasks)
+}
+
+// broadcastPingTasksReload 让所有在线 agent 重新拉 /api/clients/ping/tasks
+func broadcastPingTasksReload() {
+	notice := map[string]any{
+		"message": "reload_ping_tasks",
+	}
+	for _, conn := range ws.GetConnectedClients() {
+		if conn == nil {
+			continue
+		}
+		_ = conn.WriteJSON(notice)
+	}
 }

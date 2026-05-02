@@ -80,8 +80,9 @@ func GetAllPingTasks() ([]models.PingTask, error) {
 //   Cover=1 (all)     → 所有节点
 //   Cover=2 (exclude) → 不在 Clients 列表里的节点
 //
-// 之前实现只用 LIKE 匹配 Clients 字段，导致 Cover=1 的任务永远查不出来，
-// agent 拿不到任务列表 → 不会主动 ping，新加节点也不会自动加入。
+// 为了兼容老 agent（它会把 task.Clients 当白名单校验，未知 task_id 的 ping 命令直接丢弃），
+// 对 cover=1/cover=2 命中的任务，返回时把 Clients 替换为 [自己的 uuid]。
+// 这样 agent 视角下所有任务都长成 cover=0 的样子，不会再被白名单拒绝。
 func GetPingTasksByClient(uuid string) []models.PingTask {
 	db := dbcore.GetDBInstance()
 	var allTasks []models.PingTask
@@ -89,11 +90,14 @@ func GetPingTasksByClient(uuid string) []models.PingTask {
 		return nil
 	}
 	result := make([]models.PingTask, 0, len(allTasks))
+	selfClients := models.StringArray([]string{uuid})
 	for _, t := range allTasks {
 		switch t.Cover {
 		case 1:
-			// 全部节点
-			result = append(result, t)
+			// 全部节点 → 给 agent 一份只含自己的 view
+			view := t
+			view.Clients = selfClients
+			result = append(result, view)
 		case 2:
 			// 排除模式：uuid 不在 Clients 列表则包含
 			excluded := false
@@ -104,10 +108,12 @@ func GetPingTasksByClient(uuid string) []models.PingTask {
 				}
 			}
 			if !excluded {
-				result = append(result, t)
+				view := t
+				view.Clients = selfClients
+				result = append(result, view)
 			}
 		default:
-			// 仅指定列表
+			// 仅指定列表：原样返回（Clients 已经合法）
 			for _, c := range t.Clients {
 				if c == uuid {
 					result = append(result, t)
