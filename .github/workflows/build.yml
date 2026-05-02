@@ -58,6 +58,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Strip UTF-8 BOM from text sources
+        run: |
+          find . -type f \
+            \( -name "*.go" -o -name "go.mod" -o -name "go.sum" \
+               -o -name "*.json" -o -name "*.ts" -o -name "*.tsx" \
+               -o -name "*.js" -o -name "*.jsx" -o -name "*.html" \
+               -o -name "*.yml" -o -name "*.yaml" -o -name "*.md" \) \
+            ! -path "./node_modules/*" ! -path "./web/node_modules/*" \
+            -exec sed -i '1s/^\xEF\xBB\xBF//' {} +
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:

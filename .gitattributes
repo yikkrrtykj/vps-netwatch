@@ -1,0 +1,49 @@
+# 默认对所有"文本文件"做 LF 行尾规范化；二进制不动
+* text=auto eol=lf
+
+# Go: 必须 LF, go 工具链对 BOM 敏感
+*.go        text eol=lf
+go.mod      text eol=lf
+go.sum      text eol=lf
+
+# 前端源码: LF
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.mjs       text eol=lf
+*.json      text eol=lf
+*.css       text eol=lf
+*.scss      text eol=lf
+*.html      text eol=lf
+
+# 配置 / 文档: LF
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.toml      text eol=lf
+*.md        text eol=lf
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+.gitignore  text eol=lf
+.gitattributes text eol=lf
+
+# Windows 脚本保留 CRLF
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# 二进制（不要做行尾转换 / 不参与 diff）
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary
+*.webp      binary
+*.woff      binary
+*.woff2     binary
+*.ttf       binary
+*.eot       binary
+*.mmdb      binary
+*.zip       binary
+*.tar.gz    binary
+*.tgz       binary
