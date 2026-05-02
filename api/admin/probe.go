@@ -104,11 +104,17 @@ func AddProbeTarget(c *gin.Context) {
 		if !strings.EqualFold(task.Type, taskType) || task.Target != target {
 			continue
 		}
-		// 同 target+type 已存在 → 合并 clients；如果新请求给了非默认 Cover，覆盖
+		// 同 target+type 已存在 → 合并 clients；如果新请求给了非默认 Cover，覆盖；
+		// 如果给了非空 Name，也覆盖（用户明确传名 = 用户期望改名）
 		mergedClients := mergeStringLists([]string(task.Clients), clientIDs)
 		needSave := len(mergedClients) != len(task.Clients)
 		if req.Cover != task.Cover {
 			task.Cover = req.Cover
+			needSave = true
+		}
+		newName := strings.TrimSpace(req.Name)
+		if newName != "" && newName != task.Name {
+			task.Name = newName
 			needSave = true
 		}
 		if needSave {
@@ -125,6 +131,7 @@ func AddProbeTarget(c *gin.Context) {
 			"target":  task.Target,
 			"clients": mergedClients,
 			"cover":   task.Cover,
+			"name":    task.Name,
 		})
 		return
 	}
