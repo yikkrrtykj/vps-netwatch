@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 type Clipboard struct {
 	Id        int       `json:"id" gorm:"primaryKey;autoIncrement;unique"`

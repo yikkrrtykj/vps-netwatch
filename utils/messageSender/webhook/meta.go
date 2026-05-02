@@ -1,4 +1,4 @@
-﻿package webhook
+package webhook
 
 import (
 	"github.com/komari-monitor/komari/utils/messageSender/factory"

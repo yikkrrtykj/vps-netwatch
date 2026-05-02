@@ -1,4 +1,4 @@
-﻿package database
+package database
 
 import (
 	"github.com/komari-monitor/komari/database/dbcore"

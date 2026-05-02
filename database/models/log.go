@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 type Log struct {
 	ID      uint      `json:"id,omitempty" gorm:"primaryKey;autoIncrement"`

@@ -1,4 +1,4 @@
-﻿package cloudflare
+package cloudflare
 
 import (
 	"github.com/komari-monitor/komari/utils/oauth/factory"

@@ -1,4 +1,4 @@
-﻿package rpc
+package rpc
 
 // meta.go
 // 为已注册的 RPC 方法维护可选的帮助/描述信息，供 rpc.help 使用。

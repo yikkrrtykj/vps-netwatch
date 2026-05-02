@@ -1,4 +1,4 @@
-﻿package admin
+package admin
 
 import (
 	"github.com/komari-monitor/komari/api"

@@ -1,4 +1,4 @@
-﻿package telegram
+package telegram
 
 type Addition struct {
 	BotToken        string `json:"bot_token" required:"true"`

@@ -1,4 +1,4 @@
-﻿package github
+package github
 
 import (
 	"github.com/komari-monitor/komari/utils/oauth/factory"

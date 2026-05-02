@@ -1,4 +1,4 @@
-﻿package cloudflared_test
+package cloudflared_test
 
 import (
 	"os"

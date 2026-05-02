@@ -1,4 +1,4 @@
-﻿package cloudflared
+package cloudflared
 
 import (
 	"bufio"

@@ -1,4 +1,4 @@
-﻿package public
+package public
 
 import (
 	"archive/zip"

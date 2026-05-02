@@ -1,4 +1,4 @@
-﻿package geoip_test
+package geoip_test
 
 import (
 	"net"

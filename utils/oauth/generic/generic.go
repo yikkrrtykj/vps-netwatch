@@ -1,4 +1,4 @@
-﻿package generic
+package generic
 
 import (
 	"encoding/json"

@@ -1,4 +1,4 @@
-﻿package geoip // 与 geoip.go 保持相同的包名，表示它们是同一个包的组成部分
+package geoip // 与 geoip.go 保持相同的包名，表示它们是同一个包的组成部分
 
 import (
 	"fmt"

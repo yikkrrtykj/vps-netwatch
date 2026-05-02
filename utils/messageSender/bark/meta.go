@@ -1,4 +1,4 @@
-﻿package bark
+package bark
 
 import (
 	"github.com/komari-monitor/komari/utils/messageSender/factory"

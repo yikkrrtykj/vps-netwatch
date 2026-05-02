@@ -1,4 +1,4 @@
-﻿package flags
+package flags
 
 var (
 	// 数据库配置

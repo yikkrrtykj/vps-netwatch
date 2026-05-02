@@ -1,4 +1,4 @@
-﻿package rpc
+package rpc
 
 // JsonRpcResponse JSON-RPC 2.0 响应
 // 成功时包含 result，失败时包含 error；二者互斥。

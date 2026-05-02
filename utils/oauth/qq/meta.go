@@ -1,4 +1,4 @@
-﻿package qq
+package qq
 
 import (
 	"github.com/komari-monitor/komari/utils/oauth/factory"

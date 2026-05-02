@@ -1,4 +1,4 @@
-﻿package factory
+package factory
 
 import "github.com/komari-monitor/komari/database/models"
 

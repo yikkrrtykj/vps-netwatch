@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 type Task struct {
 	TaskId  string       `json:"task_id" gorm:"type:varchar(36);primaryKey;unique"`

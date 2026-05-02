@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 // Notification 定义了通知相关的数据库模型
 type OfflineNotification struct {

@@ -1,4 +1,4 @@
-﻿package update
+package update
 
 import (
 	"github.com/gin-gonic/gin"

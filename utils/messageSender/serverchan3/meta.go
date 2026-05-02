@@ -1,4 +1,4 @@
-﻿package serverchan3
+package serverchan3
 
 import (
     "github.com/komari-monitor/komari/utils/messageSender/factory"

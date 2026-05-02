@@ -1,4 +1,4 @@
-﻿package dbcore
+package dbcore
 
 import (
 	"archive/zip"

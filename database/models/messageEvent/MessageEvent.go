@@ -1,4 +1,4 @@
-﻿package messageevent
+package messageevent
 
 const (
 	Offline = "Offline"

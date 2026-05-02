@@ -1,4 +1,4 @@
-﻿package messageSender
+package messageSender
 
 import (
 	"encoding/json"

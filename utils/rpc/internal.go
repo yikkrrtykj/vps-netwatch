@@ -1,4 +1,4 @@
-﻿package rpc
+package rpc
 
 // internal.go
 // 定义并注册保留前缀 "rpc." 的内部方法及其元数据。

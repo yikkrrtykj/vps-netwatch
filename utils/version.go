@@ -1,4 +1,4 @@
-﻿package utils
+package utils
 
 var (
 	CurrentVersion = "0.0.1"

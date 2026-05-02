@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 type Config struct {
 	ID                uint   `json:"id,omitempty" gorm:"primaryKey;autoIncrement"` // 1

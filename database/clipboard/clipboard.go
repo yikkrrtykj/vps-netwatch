@@ -1,4 +1,4 @@
-﻿package clipboard
+package clipboard
 
 import (
 	"github.com/komari-monitor/komari/database/dbcore"

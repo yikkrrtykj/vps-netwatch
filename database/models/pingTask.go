@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 type PingRecord struct {
 	Client     string    `json:"client" gorm:"type:varchar(36);not null;index"`

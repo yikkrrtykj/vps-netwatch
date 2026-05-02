@@ -1,4 +1,4 @@
-﻿package rpc
+package rpc
 
 // context.go
 // 定义 RPC 执行时可附带的上下文元信息。用于在 handler 中获取当前请求的鉴权/主体信息。

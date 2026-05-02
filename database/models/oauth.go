@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 type OidcProvider struct {
 	Name     string `json:"name" gorm:"primaryKey;unique;not null"`

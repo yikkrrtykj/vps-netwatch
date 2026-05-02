@@ -1,4 +1,4 @@
-﻿package generic
+package generic
 
 import (
 	"github.com/komari-monitor/komari/utils/oauth/factory"

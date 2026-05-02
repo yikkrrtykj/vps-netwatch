@@ -1,4 +1,4 @@
-﻿package geoip
+package geoip
 
 import (
 	"encoding/json"

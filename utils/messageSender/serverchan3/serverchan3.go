@@ -1,4 +1,4 @@
-﻿package serverchan3
+package serverchan3
 
 import (
 	"bytes"

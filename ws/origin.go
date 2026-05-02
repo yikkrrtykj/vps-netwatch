@@ -1,4 +1,4 @@
-﻿package ws
+package ws
 
 import (
 	"net/http"

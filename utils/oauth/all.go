@@ -1,4 +1,4 @@
-﻿package oauth
+package oauth
 
 import (
 	_ "github.com/komari-monitor/komari/utils/oauth/cloudflare"

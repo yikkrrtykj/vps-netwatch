@@ -1,4 +1,4 @@
-﻿package models
+package models
 
 // Theme represents a komari theme information
 type Theme struct {

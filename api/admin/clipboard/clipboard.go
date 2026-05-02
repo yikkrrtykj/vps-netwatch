@@ -1,4 +1,4 @@
-﻿package clipboard
+package clipboard
 
 import (
 	"net/http"

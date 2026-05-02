@@ -1,4 +1,4 @@
-﻿package geoip
+package geoip
 
 import (
 	"log/slog"

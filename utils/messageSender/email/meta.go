@@ -1,4 +1,4 @@
-﻿package email
+package email
 
 import (
 	"github.com/komari-monitor/komari/utils/messageSender/factory"

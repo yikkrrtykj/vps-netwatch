@@ -1,4 +1,4 @@
-﻿package serverchanturbo
+package serverchanturbo
 
 import (
 	"bytes"

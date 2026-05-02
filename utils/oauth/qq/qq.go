@@ -1,4 +1,4 @@
-﻿package qq
+package qq
 
 import (
 	"encoding/json"
