@@ -295,10 +295,24 @@ func getRecords(ctx context.Context, req *rpc.JsonRpcRequest) (any, *rpc.JsonRpc
 			}
 			if params.UUID != "" { // ensure task assigned to specific client when filtering by uuid
 				assigned := false
-				for _, c := range t.Clients {
-					if c == params.UUID {
-						assigned = true
-						break
+				switch t.Cover {
+				case 1:
+					assigned = true // 覆盖所有节点
+				case 2:
+					excluded := false
+					for _, c := range t.Clients {
+						if c == params.UUID {
+							excluded = true
+							break
+						}
+					}
+					assigned = !excluded
+				default:
+					for _, c := range t.Clients {
+						if c == params.UUID {
+							assigned = true
+							break
+						}
 					}
 				}
 				if !assigned {

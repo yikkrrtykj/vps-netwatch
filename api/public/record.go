@@ -370,10 +370,18 @@ func GetPingRecords(c *gin.Context) {
 				}
 			}
 
-			// 如果指定了 uuid，检查任务是否分配给该客户端
+			// 如果指定了 uuid，检查任务是否分配给该客户端（考虑 Cover 字段）
 			if uuid != "" {
-				found := slices.Contains(t.Clients, uuid)
-				if !found {
+				assigned := false
+				switch t.Cover {
+				case 1:
+					assigned = true // 覆盖所有节点
+				case 2:
+					assigned = !slices.Contains(t.Clients, uuid) // 排除模式
+				default:
+					assigned = slices.Contains(t.Clients, uuid)
+				}
+				if !assigned {
 					continue
 				}
 			}

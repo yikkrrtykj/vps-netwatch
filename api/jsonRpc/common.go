@@ -47,13 +47,35 @@ func getPingStatsForNode(uuid string, pingTasks []models.PingTask) map[string]pi
 			return m
 		}
 	}
-	// 筛选属于该节点的任务
+	// 筛选属于该节点的任务，考虑 Cover 字段：
+	//   Cover=0 → uuid 必须在 task.Clients 列表里
+	//   Cover=1 → 任务覆盖所有节点，全部命中
+	//   Cover=2 → uuid 不在 task.Clients 列表里才命中（排除模式）
+	// 只用 t.Clients 字段做 contains 检查的旧逻辑，会让 cover=1/2 的任务
+	// 从首页卡片的延迟统计里完全消失（live.ping 拿不到该 task 的 entry），
+	// 即使 ping_records 表里已经有数据。
 	assigned := make([]models.PingTask, 0, 4)
 	for _, t := range pingTasks {
-		for _, c := range t.Clients {
-			if c == uuid {
+		switch t.Cover {
+		case 1:
+			assigned = append(assigned, t)
+		case 2:
+			excluded := false
+			for _, c := range t.Clients {
+				if c == uuid {
+					excluded = true
+					break
+				}
+			}
+			if !excluded {
 				assigned = append(assigned, t)
-				break
+			}
+		default:
+			for _, c := range t.Clients {
+				if c == uuid {
+					assigned = append(assigned, t)
+					break
+				}
 			}
 		}
 	}
