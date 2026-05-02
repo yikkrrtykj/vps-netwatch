@@ -4,11 +4,12 @@ import { useLiveData } from "../../contexts/LiveDataContext";
 import { useTranslation } from "react-i18next";
 import type { Record } from "../../types/LiveData";
 import Flag from "../../components/Flag";
-import { Card, Flex, SegmentedControl, Text } from "@radix-ui/themes";
+import { Card, Flex, Tabs, Text } from "@radix-ui/themes";
 import { useNodeList } from "@/contexts/NodeListContext";
 import { liveDataToRecords } from "@/utils/RecordHelper";
 import LoadChart from "./LoadChart";
 import PingChart from "./PingChart";
+import InstanceKPI from "./InstanceKPI";
 import { DetailsGrid } from "@/components/DetailsGrid";
 import { usePublicInfo } from "@/contexts/PublicInfoContext";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -225,24 +226,31 @@ export default function InstancePage() {
           </h1>
           <DetailsGrid box align="center" uuid={uuid ?? ""} />
         </div>
-        <SegmentedControl.Root
-          radius="full"
+        <div className="w-full" style={{ maxWidth: 900 }}>
+          <InstanceKPI uuid={uuid ?? ""} />
+        </div>
+        <Tabs.Root
           value={chartView}
-          onValueChange={(value) => setChartView(value as "load" | "ping")}
+          onValueChange={(v) => setChartView(v as "load" | "ping")}
+          style={{ width: "100%", maxWidth: 900 }}
         >
-          <SegmentedControl.Item value="load">
-            {t("nodeCard.load")}
-          </SegmentedControl.Item>
-          <SegmentedControl.Item value="ping">
-            {t("nodeCard.ping")}
-          </SegmentedControl.Item>
-        </SegmentedControl.Root>
-        {/* Recharts */}
-        {chartView === "load" ? (
-          <LoadChart data={liveDataToRecords(uuid ?? "", recent)} />
-        ) : (
-          <PingChart uuid={uuid ?? ""} />
-        )}
+          <Tabs.List>
+            <Tabs.Trigger value="load">
+              {t("nodeCard.load")}
+            </Tabs.Trigger>
+            <Tabs.Trigger value="ping">
+              {t("nodeCard.ping")}
+            </Tabs.Trigger>
+          </Tabs.List>
+          <div className="pt-3">
+            <Tabs.Content value="load">
+              <LoadChart data={liveDataToRecords(uuid ?? "", recent)} />
+            </Tabs.Content>
+            <Tabs.Content value="ping">
+              <PingChart uuid={uuid ?? ""} />
+            </Tabs.Content>
+          </div>
+        </Tabs.Root>
       </div>
     </div>
   );
