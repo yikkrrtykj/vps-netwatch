@@ -196,6 +196,7 @@ const Row = ({
     target: task.target || "",
     clients: task.clients || [],
     interval: task.interval || 60,
+    cover: typeof task.cover === "number" ? task.cover : 0,
   });
 
   const submitEdit = (newForm: typeof form) => {
@@ -212,6 +213,7 @@ const Row = ({
             target: newForm.target,
             clients: newForm.clients,
             interval: newForm.interval,
+            cover: newForm.cover,
           },
         ],
       }),
@@ -380,13 +382,41 @@ const Row = ({
                 }
                 required
               />
-              <label>{t("common.server")}</label>
-              <Flex>
-                <NodeSelectorDialog
-                  value={form.clients}
-                  onChange={(v) => setForm((f) => ({ ...f, clients: v }))}
-                />
-              </Flex>
+              <label>{t("probes.fields.cover", { defaultValue: "覆盖范围" })}</label>
+              <Select.Root
+                value={String(form.cover ?? 0)}
+                onValueChange={(v) =>
+                  setForm((f) => ({ ...f, cover: Number(v) }))
+                }
+              >
+                <Select.Trigger />
+                <Select.Content>
+                  <Select.Item value="0">
+                    {t("probes.cover.include", { defaultValue: "仅指定节点" })}
+                  </Select.Item>
+                  <Select.Item value="1">
+                    {t("probes.cover.all", { defaultValue: "全部节点（自动包含新加节点）" })}
+                  </Select.Item>
+                  <Select.Item value="2">
+                    {t("probes.cover.exclude", { defaultValue: "排除指定节点" })}
+                  </Select.Item>
+                </Select.Content>
+              </Select.Root>
+              {form.cover !== 1 && (
+                <>
+                  <label>
+                    {form.cover === 2
+                      ? t("probes.fields.excluded_clients", { defaultValue: "排除节点" })
+                      : t("common.server")}
+                  </label>
+                  <Flex>
+                    <NodeSelectorDialog
+                      value={form.clients}
+                      onChange={(v) => setForm((f) => ({ ...f, clients: v }))}
+                    />
+                  </Flex>
+                </>
+              )}
               <label>
                 {t("ping.interval")} ({t("time.second")})
               </label>
