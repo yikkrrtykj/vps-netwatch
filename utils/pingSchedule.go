@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"log"
 	"sync"
 	"time"
 
@@ -98,6 +99,7 @@ func executePingTask(ctx context.Context, task models.PingTask, onlineClients ma
 	}
 	targetUUIDs := task.EffectiveClients(allOnlineUUIDs)
 
+	sent, dropped := 0, 0
 	for _, clientUUID := range targetUUIDs {
 		select {
 		case <-ctx.Done():
@@ -109,10 +111,17 @@ func executePingTask(ctx context.Context, task models.PingTask, onlineClients ma
 
 		if conn, exists := onlineClients[clientUUID]; exists && conn != nil {
 			if err := conn.WriteJSON(message); err != nil {
+				dropped++
 				continue
 			}
+			sent++
+		} else {
+			dropped++
 		}
 	}
+	// 调度可视化日志：让用户能 grep 出来确认 cover=1/2 真的有发命令
+	log.Printf("[ping-sched] task=%d cover=%d target=%s online=%d effective=%d sent=%d dropped=%d",
+		task.Id, task.Cover, task.Target, len(allOnlineUUIDs), len(targetUUIDs), sent, dropped)
 }
 
 // ReloadPingSchedule 加载或重载时间表
