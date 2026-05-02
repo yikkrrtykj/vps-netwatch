@@ -84,6 +84,8 @@
       "namePlaceholder": "请输入名称",
       "publicRemark": "公开备注",
       "publicRemarkPlaceholder": "请输入公开备注",
+      "trafficResetDay": "月流量重置日",
+      "trafficResetDayPlaceholder": "1-28，默认 1（每月几号清零本月流量）",
       "remark": "私有备注",
       "remarkPlaceholder": "请输入私有备注",
       "save": "保存",

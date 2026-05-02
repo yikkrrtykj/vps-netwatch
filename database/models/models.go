@@ -38,7 +38,9 @@ type Client struct {
 	Hidden           bool      `json:"hidden" gorm:"default:false"`
 	TrafficLimit     int64     `json:"traffic_limit" gorm:"type:bigint"`
 	TrafficLimitType string    `json:"traffic_limit_type" gorm:"type:varchar(10);default:'max'"` // 流量阈值类型：sum max min up down
-	// 月流量基线：每月初记录当月起始的累计上下行字节，用于推算"本月已用"
+	// 月流量重置日（1-28，对应每月的几号清零累计；默认 1 号）。常用于按购买日计费的 VPS。
+	TrafficResetDay int `json:"traffic_reset_day" gorm:"type:int;default:1"`
+	// 月流量基线：每个计费周期开始时记录的累计上下行字节，用于推算"本周期已用"
 	MonthlyBaselineUp   int64     `json:"monthly_baseline_up" gorm:"type:bigint;default:0"`
 	MonthlyBaselineDown int64     `json:"monthly_baseline_down" gorm:"type:bigint;default:0"`
 	MonthlyBaselineAt   LocalTime `json:"monthly_baseline_at" gorm:"type:timestamp"`

@@ -84,6 +84,8 @@
       "namePlaceholder": "Please enter a name",
       "publicRemark": "Public Notes",
       "publicRemarkPlaceholder": "Please enter public notes",
+      "trafficResetDay": "Monthly traffic reset day",
+      "trafficResetDayPlaceholder": "1-28, default 1 (day of month when monthly counters reset)",
       "remark": "Private Notes",
       "remarkPlaceholder": "Please enter private notes",
       "save": "save",

@@ -17,6 +17,10 @@ export function EditDialog({ item }: { item: z.infer<typeof schema> }) {
     remark: item.remark || "", // 从 item 初始化 remark
     public_remark: item.public_remark || "", // 从 item 初始化 public_remark
     weight: item.weight || 0,
+    traffic_reset_day:
+      typeof item.traffic_reset_day === "number" && item.traffic_reset_day > 0
+        ? item.traffic_reset_day
+        : 1,
   });
   const [loading, setLoading] = React.useState(false);
   const [open, setOpen] = React.useState(false);
@@ -116,6 +120,31 @@ export function EditDialog({ item }: { item: z.infer<typeof schema> }) {
               disabled={loading}
             />
           </div>
+          <div>
+            <label className="block mb-1 text-sm font-medium text-muted-foreground">
+              {t("admin.nodeEdit.trafficResetDay", "月流量重置日")}
+            </label>
+            <TextField.Root
+              type="number"
+              min={1}
+              max={28}
+              value={form.traffic_reset_day ?? 1}
+              onChange={(e) => {
+                const v = Number.parseInt(e.target.value, 10);
+                setForm((f) => ({
+                  ...f,
+                  traffic_reset_day: Number.isFinite(v)
+                    ? Math.min(28, Math.max(1, v))
+                    : 1,
+                }));
+              }}
+              disabled={loading}
+              placeholder={t(
+                "admin.nodeEdit.trafficResetDayPlaceholder",
+                "1-28，默认 1（每月几号清零本月流量）"
+              )}
+            />
+          </div>
         </div>
         <Flex gap="2" align={"start"} className="mt-4">
           <Button
@@ -127,6 +156,7 @@ export function EditDialog({ item }: { item: z.infer<typeof schema> }) {
                 token: form.token,
                 remark: form.remark,
                 public_remark: form.public_remark,
+                traffic_reset_day: form.traffic_reset_day ?? 1,
               };
               saveClientData(item.uuid, payload, setLoading, () =>
                 setOpen(false)

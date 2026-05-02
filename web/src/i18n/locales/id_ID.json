@@ -84,6 +84,8 @@
       "namePlaceholder": "Masukkan nama",
       "publicRemark": "Catatan Publik",
       "publicRemarkPlaceholder": "Masukkan catatan publik",
+      "trafficResetDay": "Hari reset trafik bulanan",
+      "trafficResetDayPlaceholder": "1-28, default 1 (tanggal reset penghitung bulanan)",
       "remark": "Catatan Pribadi",
       "remarkPlaceholder": "Masukkan catatan pribadi",
       "save": "Simpan",

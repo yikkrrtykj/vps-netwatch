@@ -84,6 +84,8 @@
       "namePlaceholder": "請輸入名稱",
       "publicRemark": "公開備註",
       "publicRemarkPlaceholder": "請輸入公開備註",
+      "trafficResetDay": "月流量重置日",
+      "trafficResetDayPlaceholder": "1-28，預設 1（每月幾號清零本月流量）",
       "remark": "私有備註",
       "remarkPlaceholder": "請輸入私有備註",
       "save": "保存",

@@ -217,24 +217,23 @@ func SaveClientReport(clientUUID string, report common.Report) (err error) {
 
 // updateMonthlyTrafficBaseline 检查并维护节点的月流量基线。
 // 触发重置的两个条件：
-//  1. 当前月份与基线记录的月份不同（自然月翻页）
+//  1. 上次基线时间早于"本周期起点"（按 client.TrafficResetDay 计算，默认每月 1 号）
 //  2. 客户端累计计数小于基线（agent 重启导致计数器归零）
 func updateMonthlyTrafficBaseline(clientUUID string, totalUp, totalDown int64, now time.Time) error {
 	db := dbcore.GetDBInstance()
 	var client models.Client
-	if err := db.Select("uuid, monthly_baseline_up, monthly_baseline_down, monthly_baseline_at").
+	if err := db.Select("uuid, traffic_reset_day, monthly_baseline_up, monthly_baseline_down, monthly_baseline_at").
 		Where("uuid = ?", clientUUID).First(&client).Error; err != nil {
 		return err
 	}
 
+	periodStart := currentBillingPeriodStart(now, client.TrafficResetDay)
 	baselineAt := client.MonthlyBaselineAt.ToTime()
-	monthChanged := baselineAt.IsZero() ||
-		baselineAt.Year() != now.Year() ||
-		baselineAt.Month() != now.Month()
+	periodChanged := baselineAt.IsZero() || baselineAt.Before(periodStart)
 	counterRolled := totalUp < client.MonthlyBaselineUp ||
 		totalDown < client.MonthlyBaselineDown
 
-	if !monthChanged && !counterRolled {
+	if !periodChanged && !counterRolled {
 		return nil
 	}
 
@@ -244,6 +243,29 @@ func updateMonthlyTrafficBaseline(clientUUID string, totalUp, totalDown int64, n
 			"monthly_baseline_down": totalDown,
 			"monthly_baseline_at":   models.FromTime(now),
 		}).Error
+}
+
+// currentBillingPeriodStart 计算"当前计费周期的开始时刻"，基于每月 resetDay 号清零。
+// 例如 resetDay=15、now=4月10日 → 返回 3月15日 00:00；
+//      resetDay=15、now=4月20日 → 返回 4月15日 00:00。
+// resetDay 限制在 1-28 之间避免月末日期不存在的问题（例如 2 月没有 30 号）。
+func currentBillingPeriodStart(now time.Time, resetDay int) time.Time {
+	if resetDay < 1 {
+		resetDay = 1
+	}
+	if resetDay > 28 {
+		resetDay = 28
+	}
+	year, month := now.Year(), now.Month()
+	if now.Day() < resetDay {
+		if month == time.January {
+			year--
+			month = time.December
+		} else {
+			month--
+		}
+	}
+	return time.Date(year, month, resetDay, 0, 0, 0, 0, now.Location())
 }
 
 /*

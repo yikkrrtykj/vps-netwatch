@@ -84,6 +84,8 @@
       "namePlaceholder": "名前を入力してください",
       "publicRemark": "公開メモ",
       "publicRemarkPlaceholder": "公開メモを入力してください",
+      "trafficResetDay": "月間トラフィックリセット日",
+      "trafficResetDayPlaceholder": "1-28、デフォルト 1（毎月の何日にカウンターをリセット）",
       "remark": "プライベートメモ",
       "remarkPlaceholder": "プライベートメモを入力してください",
       "save": "保存",
