@@ -371,11 +371,7 @@ const NodeTable: React.FC<NodeTableProps> = ({ nodes, liveData }) => {
                               -
                             </label>
                           )}
-                          <LatencyBadges
-                            uuid={node.uuid}
-                            maxItems={1}
-                            compact
-                          />
+                          <LatencyBadges uuid={node.uuid} />
                         </Flex>
                       </Link>
                     </Flex>

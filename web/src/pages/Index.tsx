@@ -13,6 +13,7 @@ const NodeDisplay = React.lazy(() => import("../components/NodeDisplay"));
 import { formatBytes } from "@/utils/unitHelper";
 import { useLiveData } from "../contexts/LiveDataContext";
 import { useNodeList } from "@/contexts/NodeListContext";
+import type { NodeBasicInfo } from "@/contexts/NodeListContext";
 import Loading from "@/components/loading";
 import { Settings, X } from "lucide-react";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
@@ -166,15 +167,80 @@ const Index = () => {
         title: t("expiring_soon"),
         getValue: () => {
           const now = Date.now();
-          const sevenDays = 7 * 86400 * 1000;
-          const count = (nodeList ?? []).filter((n) => {
-            if (!n.expired_at) return false;
-            const ts = new Date(n.expired_at).getTime();
-            return ts > now && ts - now < sevenDays;
-          }).length;
-          return count > 0
-            ? t("expiring_soon_count", { count, defaultValue: `${count} 个 7 天内` })
-            : t("expiring_soon_none", { defaultValue: "无" });
+          const oneDay = 86400 * 1000;
+          const expiring = (nodeList ?? [])
+            .map((n) => {
+              if (!n.expired_at) return null;
+              const ts = new Date(n.expired_at).getTime();
+              if (!ts) return null;
+              const days = Math.floor((ts - now) / oneDay);
+              return { node: n, days };
+            })
+            .filter((x): x is { node: NodeBasicInfo; days: number } => Boolean(x));
+          const within7 = expiring.filter((x) => x.days >= 0 && x.days < 7).length;
+          const within30 = expiring.filter((x) => x.days >= 0 && x.days < 30).length;
+          if (within7 === 0 && within30 === 0) {
+            return t("expiring_soon_none", { defaultValue: "无" });
+          }
+          return `${within7} / ${within30}`;
+        },
+        getPopover: () => {
+          const now = Date.now();
+          const oneDay = 86400 * 1000;
+          const expiring = (nodeList ?? [])
+            .map((n) => {
+              if (!n.expired_at) return null;
+              const ts = new Date(n.expired_at).getTime();
+              if (!ts) return null;
+              const days = Math.floor((ts - now) / oneDay);
+              return { node: n, days };
+            })
+            .filter((x): x is { node: NodeBasicInfo; days: number } => Boolean(x))
+            .filter((x) => x.days < 30)
+            .sort((a, b) => a.days - b.days);
+          if (!expiring.length) {
+            return (
+              <Text size="2" color="gray">
+                {t("expiring_soon_none_long", { defaultValue: "近 30 天内无到期节点" })}
+              </Text>
+            );
+          }
+          return (
+            <Flex direction="column" gap="2" style={{ minWidth: 240 }}>
+              <Text size="2" weight="bold">
+                {t("expiring_soon_legend", {
+                  defaultValue: "7 天内 / 30 天内：",
+                })}
+              </Text>
+              <Flex direction="column" gap="1">
+                {expiring.map(({ node, days }) => (
+                  <Flex
+                    key={node.uuid}
+                    justify="between"
+                    align="center"
+                    gap="3"
+                  >
+                    <Text size="2" truncate style={{ maxWidth: 180 }}>
+                      {node.name}
+                    </Text>
+                    <Text
+                      size="2"
+                      color={
+                        days < 0 ? "red" : days < 7 ? "red" : days < 14 ? "orange" : "gray"
+                      }
+                    >
+                      {days < 0
+                        ? t("nodeCard.expired", { defaultValue: "已过期" })
+                        : t("nodeCard.expires_in_days", {
+                            count: days,
+                            defaultValue: `${days} 天`,
+                          })}
+                    </Text>
+                  </Flex>
+                ))}
+              </Flex>
+            </Flex>
+          );
         },
         visible: statusCardsVisibility.expiringSoon,
       },
@@ -271,6 +337,7 @@ const Index = () => {
                       key={card.key}
                       title={card.title}
                       value={card.getValue()}
+                      popoverContent={card.getPopover ? card.getPopover() : undefined}
                     />
                   ))}
               </div>
@@ -364,15 +431,24 @@ type TopCardProps = {
   title: string;
   value: string | number;
   description?: string;
+  popoverContent?: React.ReactNode;
 };
 
 const TopCard: React.FC<TopCardProps> = React.memo(
-  ({ title, value, description }) => {
-    return (
+  ({ title, value, description, popoverContent }) => {
+    const body = (
       <div className="min-w-52 md:max-w-72 w-full">
         <Flex direction="column" gap="1">
           <label className="text-muted-foreground text-sm">{title}</label>
-          <label className="font-medium -mt-2 text-md">{value}</label>
+          <label
+            className={
+              popoverContent
+                ? "font-medium -mt-2 text-md cursor-pointer hover:underline"
+                : "font-medium -mt-2 text-md"
+            }
+          >
+            {value}
+          </label>
           {description && (
             <Text size="2" color="gray">
               {description}
@@ -380,6 +456,15 @@ const TopCard: React.FC<TopCardProps> = React.memo(
           )}
         </Flex>
       </div>
+    );
+    if (!popoverContent) return body;
+    return (
+      <Popover.Root>
+        <Popover.Trigger>
+          <div role="button">{body}</div>
+        </Popover.Trigger>
+        <Popover.Content width="320px">{popoverContent}</Popover.Content>
+      </Popover.Root>
     );
   },
 );

@@ -1,5 +1,6 @@
-﻿import React from "react";
+import React from "react";
 import {
+  Box,
   Card,
   Flex,
   Text,
@@ -7,32 +8,24 @@ import {
   Separator,
   IconButton,
 } from "@radix-ui/themes";
-import type { LiveData, PingStat, Record } from "../types/LiveData";
+import type { LiveData, Record } from "../types/LiveData";
 import UsageBar from "./UsageBar";
 import Flag from "./Flag";
 const Sparkline = React.lazy(() => import("./Sparkline"));
 import { useTranslation } from "react-i18next";
 import Tips from "./ui/tips";
+import type { TFunction } from "i18next";
+import { Link } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
+import type { NodeBasicInfo } from "@/contexts/NodeListContext";
+import PriceTags from "./PriceTags";
+import { TrendingUp } from "lucide-react";
+import MiniPingChartFloat from "./MiniPingChartFloat";
+import { getOSImage, getOSName } from "@/utils";
+import { usePublicInfo } from "@/contexts/PublicInfoContext";
+import LatencyBadges from "./LatencyBadges";
 
 import { formatBytes } from "@/utils/unitHelper";
-
-// 从 live.ping 中挑出"最佳延迟"和"最高丢包"，给卡片头部一个一眼概览
-function pickPingHighlights(ping: { [taskId: string]: PingStat } | undefined) {
-  if (!ping) return { bestLatency: null as number | null, worstLoss: 0, label: "" };
-  const stats = Object.values(ping);
-  if (!stats.length) return { bestLatency: null, worstLoss: 0, label: "" };
-  let best: PingStat | null = null;
-  let worstLoss = 0;
-  for (const s of stats) {
-    if (s.latest >= 0 && (best === null || s.latest < best.latest)) best = s;
-    if (s.loss > worstLoss) worstLoss = s.loss;
-  }
-  return {
-    bestLatency: best?.latest ?? null,
-    worstLoss,
-    label: best?.name ?? "",
-  };
-}
 
 // 到期倒计时：返回剩余天数（< 0 表示已过期）
 function expirationDaysLeft(expiredAt: string | undefined | null): number | null {
@@ -62,6 +55,7 @@ interface NodeProps {
   live: Record | undefined;
   online: boolean;
 }
+
 const Node = React.memo(({ basic, live, online }: NodeProps) => {
   const [t] = useTranslation();
   const isMobile = useIsMobile();
@@ -69,7 +63,14 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
     cpu: { usage: 0 },
     ram: { used: 0 },
     disk: { used: 0 },
-    network: { up: 0, down: 0, totalUp: 0, totalDown: 0, monthlyUp: 0, monthlyDown: 0 },
+    network: {
+      up: 0,
+      down: 0,
+      totalUp: 0,
+      totalDown: 0,
+      monthlyUp: 0,
+      monthlyDown: 0,
+    },
     ping: {},
   } as Record;
 
@@ -88,9 +89,29 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
   const totalDownload = formatBytes(liveData.network.totalDown);
   const monthlyUpload = formatBytes(liveData.network.monthlyUp);
   const monthlyDownload = formatBytes(liveData.network.monthlyDown);
-  const pingHighlight = pickPingHighlights(liveData.ping);
   const daysLeft = expirationDaysLeft(basic.expired_at as unknown as string);
-  //const totalTraffic = formatBytes(liveData.network.totalUp + liveData.network.totalDown);
+
+  // 到期倒计时颜色
+  const expiringColor: "red" | "orange" | "gray" | null =
+    daysLeft === null
+      ? null
+      : daysLeft < 0
+        ? "red"
+        : daysLeft < 7
+          ? "red"
+          : daysLeft < 30
+            ? "orange"
+            : null;
+  const expiringText =
+    daysLeft === null
+      ? null
+      : daysLeft < 0
+        ? t("nodeCard.expired", { defaultValue: "已过期" })
+        : t("nodeCard.expires_in_days", {
+            count: daysLeft,
+            defaultValue: `${daysLeft} 天后到期`,
+          });
+
   return (
     <Card
       style={{
@@ -101,77 +122,188 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
       id={basic.uuid}
       className="node-card hover:cursor-pointer hover:shadow-lg hover:bg-accent-2"
     >
-      <Flex direction="column" gap="2">
-        <Flex justify="between" align="center" my={isMobile ? "-1" : "0"}>
-          <Flex justify="start" align="center" style={{ flex: 1, minWidth: 0 }}>
+      <Flex direction="column" gap="3">
+        {/* === Header === */}
+        <Flex justify="between" align="center" gap="2">
+          <Flex
+            justify="start"
+            align="center"
+            gap="2"
+            style={{ flex: 1, minWidth: 0 }}
+          >
             <Flag flag={basic.region} />
             <Link
               to={`/instance/${basic.uuid}`}
               style={{ flex: 1, minWidth: 0 }}
             >
-              <Flex direction="column" style={{ minWidth: 0 }}>
-                <Text
-                  weight="bold"
-                  size={isMobile ? "2" : "4"}
-                  truncate
-                  style={{ maxWidth: "100%" }}
-                >
-                  {basic.name}
-                </Text>
-                <Text
-                  color="gray"
-                  hidden={!isMobile}
-                  style={{
-                    marginTop: "-3px",
-                    fontSize: "0.728rem",
-                  }}
-                  className="text-sm"
-                >
-                  {formatUptime(liveData.uptime, t)}
-                </Text>
+              <Flex direction="column" style={{ minWidth: 0 }} gap="1">
+                <Flex align="center" gap="2" style={{ minWidth: 0 }}>
+                  <Text
+                    weight="bold"
+                    size={isMobile ? "2" : "3"}
+                    truncate
+                    style={{ maxWidth: "100%" }}
+                  >
+                    {basic.name}
+                  </Text>
+                  {!isMobile && (
+                    <img
+                      src={getOSImage(basic.os)}
+                      alt={basic.os}
+                      className="w-4 h-4 opacity-70 shrink-0"
+                      title={`${getOSName(basic.os)} / ${basic.arch}`}
+                    />
+                  )}
+                </Flex>
                 <PriceTags
-                  hidden={isMobile}
+                  hidden={false}
                   price={basic.price}
                   billing_cycle={basic.billing_cycle}
                   expired_at={basic.expired_at}
                   currency={basic.currency}
                   traffic_limit={basic.traffic_limit}
                   traffic_limit_type={basic.traffic_limit_type}
-                  tags={basic.tags}
+                  tags={basic.tags || ""}
                   ip4={basic.ipv4}
                   ip6={basic.ipv6}
                 />
-                <LatencyBadges uuid={basic.uuid} maxItems={2} />
               </Flex>
             </Link>
           </Flex>
           <Flex gap="2" align="center" style={{ flex: "none" }}>
             {live?.message && <Tips color="#CE282E">{live.message}</Tips>}
-            {online && pingHighlight.bestLatency !== null && (
-              <Badge
-                color={
-                  pingHighlight.bestLatency > 200
-                    ? "red"
-                    : pingHighlight.bestLatency > 100
-                      ? "orange"
-                      : "green"
-                }
-                variant="soft"
-                size="1"
-                title={pingHighlight.label}
-              >
-                {pingHighlight.bestLatency}ms
-              </Badge>
-            )}
-            {online && pingHighlight.worstLoss > 0 && (
-              <Badge color="red" variant="soft" size="1">
-                {t("nodeCard.loss", { defaultValue: "丢" })}{" "}
-                {pingHighlight.worstLoss.toFixed(pingHighlight.worstLoss >= 10 ? 0 : 1)}%
-              </Badge>
-            )}
-            {daysLeft !== null && daysLeft >= 0 && daysLeft < 7 && (
-              <Badge color="red" variant="soft" size="1">
-                {t("nodeCard.expires_in_days", { count: daysLeft, defaultValue: `${daysLeft}天` })}
+            <Badge color={online ? "green" : "red"} variant="soft">
+              {online ? t("nodeCard.online") : t("nodeCard.offline")}
+            </Badge>
+          </Flex>
+        </Flex>
+
+        <Separator size="4" />
+
+        {/* === Metrics: CPU / RAM / Disk === */}
+        <Flex direction="column" gap="2">
+          <UsageBar
+            label={t("nodeCard.cpu")}
+            value={liveData.cpu.usage}
+            accessory={
+              online ? (
+                <React.Suspense
+                  fallback={<div style={{ width: 64, height: 16 }} />}
+                >
+                  <Sparkline
+                    uuid={basic.uuid}
+                    field="cpu"
+                    width={64}
+                    height={16}
+                  />
+                </React.Suspense>
+              ) : null
+            }
+          />
+          <Flex direction="column" gap="0">
+            <UsageBar
+              label={t("nodeCard.ram")}
+              value={memoryUsagePercent}
+              accessory={
+                online ? (
+                  <React.Suspense
+                    fallback={<div style={{ width: 64, height: 16 }} />}
+                  >
+                    <Sparkline
+                      uuid={basic.uuid}
+                      field="ram"
+                      width={64}
+                      height={16}
+                    />
+                  </React.Suspense>
+                ) : null
+              }
+            />
+            <Text size="1" color="gray" style={{ marginTop: -2 }}>
+              {formatBytes(liveData.ram.used)} /{" "}
+              {formatBytes(basic.mem_total)}
+            </Text>
+          </Flex>
+          <Flex direction="column" gap="0">
+            <UsageBar label={t("nodeCard.disk")} value={diskUsagePercent} />
+            <Text size="1" color="gray" style={{ marginTop: -2 }}>
+              {formatBytes(liveData.disk.used)} /{" "}
+              {formatBytes(basic.disk_total)}
+            </Text>
+          </Flex>
+        </Flex>
+
+        {/* === Network: 网速 / 本月 / 累计 === */}
+        <Flex direction="column" gap="1">
+          <Flex justify="between" align="center">
+            <Text size="2" color="gray">
+              {t("nodeCard.networkSpeed")}
+            </Text>
+            <Text size="2">
+              ↑ {uploadSpeed}/s ↓ {downloadSpeed}/s
+            </Text>
+          </Flex>
+          <Flex justify="between" align="center">
+            <Text size="2" color="gray">
+              {t("monthly_traffic", { defaultValue: "本月流量" })}
+            </Text>
+            <Text size="2">
+              ↑ {monthlyUpload} ↓ {monthlyDownload}
+            </Text>
+          </Flex>
+          {basic.traffic_limit > 0 ? (
+            <Flex direction="column" gap="0">
+              <UsageBar
+                label={t("nodeCard.totalTraffic")}
+                value={getTrafficPercentage(
+                  liveData.network.totalUp,
+                  liveData.network.totalDown,
+                  basic.traffic_limit,
+                  basic.traffic_limit_type ?? "sum",
+                )}
+                max={Infinity}
+              />
+              <Flex justify="between" align="center" style={{ marginTop: -2 }}>
+                <Text size="1" color="gray">
+                  ↑ {totalUpload} ↓ {totalDownload}
+                </Text>
+                <Text size="1" color="gray">
+                  {basic.traffic_limit_type
+                    ? basic.traffic_limit_type.charAt(0).toUpperCase() +
+                      basic.traffic_limit_type.slice(1)
+                    : "Sum"}
+                  ({formatBytes(basic.traffic_limit)})
+                </Text>
+              </Flex>
+            </Flex>
+          ) : (
+            <Flex justify="between" align="center">
+              <Text size="2" color="gray">
+                {t("nodeCard.totalTraffic")}
+              </Text>
+              <Text size="2">
+                ↑ {totalUpload} ↓ {totalDownload}
+              </Text>
+            </Flex>
+          )}
+        </Flex>
+
+        {/* === Latency: 单行横滚，无论几个目标都不破版 === */}
+        <Box style={{ marginTop: -2 }}>
+          <LatencyBadges uuid={basic.uuid} />
+        </Box>
+
+        <Separator size="4" />
+
+        {/* === Footer: 运行时间 + 到期 + 趋势图 === */}
+        <Flex justify="between" align="center" gap="2">
+          <Text size="2" color="gray">
+            {online ? formatUptime(liveData.uptime, t) : "-"}
+          </Text>
+          <Flex gap="2" align="center">
+            {expiringColor && expiringText && (
+              <Badge color={expiringColor} variant="soft" size="1">
+                {expiringText}
               </Badge>
             )}
             <MiniPingChartFloat
@@ -183,188 +315,8 @@ const Node = React.memo(({ basic, live, online }: NodeProps) => {
                 </IconButton>
               }
             />
-            <Badge color={online ? "green" : "red"} variant="soft">
-              {online ? t("nodeCard.online") : t("nodeCard.offline")}
-            </Badge>
           </Flex>
         </Flex>
-
-        <Separator size="4" className="-mt-1" />
-
-        <Flex direction="column" gap="2">
-          <Flex justify="between" hidden={isMobile}>
-            <Text size="2" color="gray">
-              OS
-            </Text>
-            <Flex align="center">
-              <img
-                src={getOSImage(basic.os)}
-                alt={basic.os}
-                className="w-5 h-5 mr-2"
-              />
-              <Text size="2">
-                {getOSName(basic.os)} / {basic.arch}
-              </Text>
-            </Flex>
-          </Flex>
-          <Flex className="md:flex-col flex-row md:gap-1 gap-4">
-            {/* CPU Usage */}
-            <UsageBar
-              label={t("nodeCard.cpu")}
-              value={liveData.cpu.usage}
-              accessory={
-                online ? (
-                  <React.Suspense fallback={<div style={{ width: 64, height: 16 }} />}>
-                    <Sparkline uuid={basic.uuid} field="cpu" width={64} height={16} />
-                  </React.Suspense>
-                ) : null
-              }
-            />
-
-            {/* Memory Usage */}
-            <UsageBar
-              label={t("nodeCard.ram")}
-              value={memoryUsagePercent}
-              accessory={
-                online ? (
-                  <React.Suspense fallback={<div style={{ width: 64, height: 16 }} />}>
-                    <Sparkline uuid={basic.uuid} field="ram" width={64} height={16} />
-                  </React.Suspense>
-                ) : null
-              }
-            />
-            <Text
-              className="md:block hidden"
-              size="1"
-              color="gray"
-              style={{ marginTop: "-4px" }}
-            >
-              ({formatBytes(liveData.ram.used)} / {formatBytes(basic.mem_total)}
-              )
-            </Text>
-
-            {/* Disk Usage */}
-            <UsageBar label={t("nodeCard.disk")} value={diskUsagePercent} />
-            <Text
-              size="1"
-              className="md:block hidden"
-              color="gray"
-              style={{ marginTop: "-4px" }}
-            >
-              ({formatBytes(liveData.disk.used)} /{" "}
-              {formatBytes(basic.disk_total)})
-            </Text>
-          </Flex>
-          {basic.traffic_limit > 0 ? (
-            <Flex justify="between" hidden={isMobile} direction="column">
-              <UsageBar
-                label={t("nodeCard.totalTraffic")}
-                value={getTrafficPercentage(
-                  liveData.network.totalUp,
-                  liveData.network.totalDown,
-                  basic.traffic_limit,
-                  basic.traffic_limit_type ?? "sum",
-                )}
-                max={Infinity}
-              />
-              <Flex wrap="nowrap" justify="between">
-                <Text size="1" className="md:block hidden" color="gray">
-                  ↑ {totalUpload} ↓ {totalDownload}
-                </Text>
-                <Text size="1" className="md:block hidden" color="gray">
-                  {basic.traffic_limit_type &&
-                    basic.traffic_limit_type.charAt(0).toUpperCase() +
-                      basic.traffic_limit_type.slice(1)}
-                  ({formatBytes(basic.traffic_limit)})
-                </Text>
-              </Flex>
-            </Flex>
-          ) : (
-            <Flex justify="between" hidden={isMobile}>
-              <Text size="2" color="gray">
-                {t("nodeCard.totalTraffic")}
-              </Text>
-              <Text size="2">
-                ↑ {totalUpload} ↓ {totalDownload}
-              </Text>
-            </Flex>
-          )}
-
-          <Flex justify="between" hidden={isMobile}>
-            <Text size="2" color="gray">
-              {t("monthly_traffic", { defaultValue: "本月流量" })}
-            </Text>
-            <Text size="2">
-              ↑ {monthlyUpload} ↓ {monthlyDownload}
-            </Text>
-          </Flex>
-
-          <Flex justify="between" hidden={isMobile}>
-            <Text size="2" color="gray" className="flex items-center">
-              {t("nodeCard.networkSpeed")}
-            </Text>
-            <Text size="2">
-              ↑ {uploadSpeed}/s ↓ {downloadSpeed}/s
-            </Text>
-          </Flex>
-
-          <Flex justify="between" gap="2" hidden={!isMobile}>
-            <Text size="2">{t("nodeCard.networkSpeed")}</Text>
-            <Text size="2">
-              ↑ {uploadSpeed}/s ↓ {downloadSpeed}/s
-            </Text>
-          </Flex>
-          <Flex justify="between" gap="2" hidden={!isMobile}>
-            <Text size="2">{t("nodeCard.totalTraffic")}</Text>
-            <Flex direction="column">
-              <Text size="2">
-                ↑ {totalUpload} ↓ {totalDownload}
-              </Text>
-            </Flex>
-          </Flex>
-          <Flex justify="between" gap="2" hidden={!isMobile}>
-            <Text size="2">{t("monthly_traffic", { defaultValue: "本月流量" })}</Text>
-            <Text size="2">
-              ↑ {monthlyUpload} ↓ {monthlyDownload}
-            </Text>
-          </Flex>
-          {basic.traffic_limit > 0 && isMobile && (
-            <UsageBar
-              label={`${basic.traffic_limit_type && basic.traffic_limit_type.charAt(0).toUpperCase() + basic.traffic_limit_type.slice(1)}(${formatBytes(basic.traffic_limit)})`}
-              max={Infinity}
-              value={getTrafficPercentage(
-                liveData.network.totalUp,
-                liveData.network.totalDown,
-                basic.traffic_limit,
-                basic.traffic_limit_type ?? "sum",
-              )}
-            />
-          )}
-          <Flex justify="between" hidden={isMobile}>
-            <Text size="2" color="gray">
-              {t("nodeCard.uptime")}
-            </Text>
-            {online ? (
-              <Text size="2">{formatUptime(liveData.uptime, t)}</Text>
-            ) : (
-              <Text size="2" color="gray">
-                -
-              </Text>
-            )}
-          </Flex>
-        </Flex>
-        <PriceTags
-          hidden={!isMobile}
-          price={basic.price}
-          billing_cycle={basic.billing_cycle}
-          expired_at={basic.expired_at}
-          currency={basic.currency}
-          traffic_limit={basic.traffic_limit}
-          traffic_limit_type={basic.traffic_limit_type}
-          tags={basic.tags || ""}
-          ip4={basic.ipv4}
-          ip6={basic.ipv6}
-        />
       </Flex>
     </Card>
   );
@@ -377,17 +329,6 @@ type NodeGridProps = {
   liveData: LiveData;
 };
 
-import { Box } from "@radix-ui/themes";
-import type { TFunction } from "i18next";
-import { Link } from "react-router-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
-import type { NodeBasicInfo } from "@/contexts/NodeListContext";
-import PriceTags from "./PriceTags";
-import { TrendingUp } from "lucide-react";
-import MiniPingChartFloat from "./MiniPingChartFloat";
-import { getOSImage, getOSName } from "@/utils";
-import { usePublicInfo } from "@/contexts/PublicInfoContext";
-import LatencyBadges from "./LatencyBadges";
 export const NodeGrid = ({ nodes, liveData }: NodeGridProps) => {
   const { publicInfo } = usePublicInfo();
   const offlineServerPosition =
@@ -404,6 +345,7 @@ export const NodeGrid = ({ nodes, liveData }: NodeGridProps) => {
       if (!aIsOnline && bIsOnline) return -1;
       if (aIsOnline && !bIsOnline) return 1;
     } else if (offlineServerPosition === "Keep") {
+      // keep order
     } else {
       if (aIsOnline && !bIsOnline) return -1;
       if (!aIsOnline && bIsOnline) return 1;
@@ -416,7 +358,7 @@ export const NodeGrid = ({ nodes, liveData }: NodeGridProps) => {
       className="gap-2 md:gap-4"
       style={{
         display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+        gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
         padding: "1rem",
         width: "100%",
         boxSizing: "border-box",

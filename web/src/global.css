@@ -166,3 +166,14 @@ body, * {
   scrollbar-width: thin;
   scrollbar-color: rgba(80,80,80,0.4) transparent;
 }
+
+/* Hide scrollbar on inline horizontal scrollers used inside cards */
+.vpsnw-latency-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.vpsnw-latency-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}

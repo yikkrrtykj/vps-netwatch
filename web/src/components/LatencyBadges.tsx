@@ -1,4 +1,4 @@
-﻿import { Badge, Flex, Text } from "@radix-ui/themes";
+import { Badge, Flex, Text } from "@radix-ui/themes";
 import { Activity, AlertTriangle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRPC2Call } from "@/contexts/RPC2Context";
@@ -70,25 +70,29 @@ const analyzeTask = (task: TaskInfo, records: PingRecord[]): Summary | null => {
   const peakThreshold = Math.max(180, avg * 2.2, avg + 80);
   const anomaly =
     lossRate >= 1
-      ? `丢包 ${lossRate.toFixed(lossRate >= 10 ? 0 : 1)}%`
+      ? `丢 ${lossRate.toFixed(lossRate >= 10 ? 0 : 1)}%`
       : max >= peakThreshold
-        ? `峰值 ${max}ms`
+        ? `峰 ${max}ms`
         : jitter >= 60
-          ? `抖动 ${Math.round(jitter)}ms`
+          ? `抖 ${Math.round(jitter)}ms`
           : null;
 
   return { task, latest, avg, max, lossRate, jitter, anomaly };
 };
 
-const LatencyBadges = ({
-  uuid,
-  maxItems = 3,
-  compact = false,
-}: {
-  uuid: string;
-  maxItems?: number;
-  compact?: boolean;
-}) => {
+const latencyColor = (latency: number | null, anomaly: string | null) => {
+  if (latency === null) return "red";
+  if (anomaly) return "orange";
+  if (latency > 200) return "orange";
+  if (latency > 100) return "yellow";
+  return "green";
+};
+
+/**
+ * 延迟 badge 行：固定单行 + 横向滚动，不会因目标多而破版。
+ * 默认显示节点的所有探测目标。
+ */
+const LatencyBadges = ({ uuid }: { uuid: string }) => {
   const { call } = useRPC2Call();
   const [data, setData] = useState<PingResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -134,18 +138,22 @@ const LatencyBadges = ({
       .map((task) => analyzeTask(task, recordsByTask.get(task.id) || []))
       .filter((item): item is Summary => Boolean(item))
       .sort((a, b) => {
+        // 异常优先 → 然后按延迟升序（小的更好）
         if (a.anomaly && !b.anomaly) return -1;
         if (!a.anomaly && b.anomaly) return 1;
         return (a.latest ?? Infinity) - (b.latest ?? Infinity);
-      })
-      .slice(0, maxItems);
-  }, [data, maxItems]);
+      });
+  }, [data]);
 
   if (error) {
     return (
-      <Flex align="center" gap="1" wrap="wrap" className="vpsnw-latency">
+      <Flex align="center" gap="1" className="vpsnw-latency">
+        <Text size="1" color="gray" className="flex items-center gap-1 shrink-0">
+          <Activity size={12} />
+          延迟
+        </Text>
         <Badge color="gray" variant="soft" size="1">
-          <span className="text-xs">延迟读取失败</span>
+          <span className="text-xs">读取失败</span>
         </Badge>
       </Flex>
     );
@@ -153,8 +161,8 @@ const LatencyBadges = ({
 
   if (!summaries.length) {
     return (
-      <Flex align="center" gap="1" wrap="wrap" className="vpsnw-latency">
-        <Text size="1" color="gray" className="flex items-center gap-1">
+      <Flex align="center" gap="1" className="vpsnw-latency">
+        <Text size="1" color="gray" className="flex items-center gap-1 shrink-0">
           <Activity size={12} />
           延迟
         </Text>
@@ -166,43 +174,51 @@ const LatencyBadges = ({
   }
 
   return (
-    <Flex align="center" gap="1" wrap="wrap" className="vpsnw-latency">
-      {!compact && (
-        <Text size="1" color="gray" className="flex items-center gap-1">
-          <Activity size={12} />
-          延迟
-        </Text>
-      )}
-      {summaries.map((summary) => {
-        const color =
-          summary.anomaly || summary.latest === null
-            ? "red"
-            : summary.latest > 180
-              ? "orange"
-              : "green";
-        return (
+    <Flex
+      align="center"
+      gap="2"
+      className="vpsnw-latency"
+      style={{ minWidth: 0 }}
+    >
+      <Text
+        size="1"
+        color="gray"
+        className="flex items-center gap-1 shrink-0"
+      >
+        <Activity size={12} />
+        延迟
+      </Text>
+      <div
+        className="vpsnw-latency-scroll"
+        style={{
+          display: "flex",
+          gap: 4,
+          overflowX: "auto",
+          overflowY: "hidden",
+          flexWrap: "nowrap",
+          paddingBottom: 2,
+          scrollbarWidth: "none",
+        }}
+      >
+        {summaries.map((summary) => (
           <Badge
             key={summary.task.id}
-            color={color as any}
+            color={latencyColor(summary.latest, summary.anomaly) as any}
             variant="soft"
             size="1"
-            title={`${summary.task.name} 平均 ${summary.avg}ms，峰值 ${summary.max}ms`}
+            title={`${summary.task.name} avg ${summary.avg}ms · max ${summary.max}ms · loss ${summary.lossRate.toFixed(1)}%`}
+            style={{ flexShrink: 0, whiteSpace: "nowrap" }}
           >
-            <span className="text-xs">
-              {summary.task.name}:{" "}
-              {summary.latest === null ? "丢包" : `${summary.latest}ms`}
+            <span className="text-xs flex items-center gap-1">
+              {summary.anomaly && <AlertTriangle size={10} />}
+              <span>
+                {summary.task.name}{" "}
+                {summary.latest === null ? "·丢包" : `${summary.latest}ms`}
+              </span>
             </span>
           </Badge>
-        );
-      })}
-      {summaries.some((summary) => summary.anomaly) && (
-        <Badge color="orange" variant="soft" size="1">
-          <span className="text-xs flex items-center gap-1">
-            <AlertTriangle size={11} />
-            {summaries.find((summary) => summary.anomaly)?.anomaly}
-          </span>
-        </Badge>
-      )}
+        ))}
+      </div>
     </Flex>
   );
 };
