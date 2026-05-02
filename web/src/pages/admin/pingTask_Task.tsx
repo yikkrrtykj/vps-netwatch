@@ -294,7 +294,23 @@ const Row = ({
       <TableCell>{task.name}</TableCell>
       <TableCell>
         <Flex gap="2" align="center">
-          {task.clients && task.clients.length > 0
+          {task.cover === 1
+            ? t("probes.cover.all_short", { defaultValue: "全部节点" })
+            : task.cover === 2
+              ? `${t("probes.cover.exclude_short", { defaultValue: "排除" })}: ${
+                  task.clients && task.clients.length > 0
+                    ? (() => {
+                        const names = task.clients.map((uuid) => {
+                          const name =
+                            nodeDetail.find((node) => node.uuid === uuid)?.name || uuid;
+                          return name;
+                        });
+                        const joined = names.join(", ");
+                        return joined.length > 30 ? joined.slice(0, 30) + "..." : joined;
+                      })()
+                    : "—"
+                }`
+            : task.clients && task.clients.length > 0
             ? (() => {
                 const names = task.clients.map((uuid) => {
                   const name =
