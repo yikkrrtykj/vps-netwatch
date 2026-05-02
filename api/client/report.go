@@ -268,18 +268,24 @@ func processMessage(conn *ws.SafeConn, message []byte, uuid string) {
 		}
 		err = json.Unmarshal(message, &reqBody)
 		if err != nil {
+			log.Printf("[ping-recv] uuid=%s parse-err=%v raw=%s", uuid, err, string(message))
 			conn.WriteJSON(gin.H{"status": "error", "error": "Invalid ping result format"})
 			return
 		}
+		log.Printf("[ping-recv] uuid=%s task=%d value=%d type=%s",
+			uuid, reqBody.PingTaskID, reqBody.PingResult, reqBody.PingType)
 		pingResult := models.PingRecord{
 			Client: uuid,
 			TaskId: reqBody.PingTaskID,
 			Value:  reqBody.PingResult,
 			Time:   models.FromTime(reqBody.FinishedAt),
 		}
-		tasks.SavePingRecord(pingResult)
+		if err := tasks.SavePingRecord(pingResult); err != nil {
+			log.Printf("[ping-recv] save-err uuid=%s task=%d err=%v",
+				uuid, reqBody.PingTaskID, err)
+		}
 	default:
-		log.Printf("Unknown message type: %s", msgType.Type)
+		log.Printf("Unknown message type: %s raw=%s", msgType.Type, string(message))
 		conn.WriteJSON(gin.H{"status": "error", "error": "Unknown message type"})
 	}
 }
