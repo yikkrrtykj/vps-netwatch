@@ -74,7 +74,8 @@ func RunServer() {
 	if utils.VersionHash != "unknown" {
 		gin.SetMode(gin.ReleaseMode)
 	}
-	if _, err := config.GetManyAs[config.Legacy](); err != nil {
+	conf, err := config.GetManyAs[config.Legacy]()
+	if err != nil {
 		log.Fatal(err)
 	}
 	go geoip.InitGeoIp()
