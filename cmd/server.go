@@ -315,6 +315,12 @@ func RunServer() {
 
 		}
 
+		probeGroup := adminAuthrized.Group("/probes")
+		{
+			probeGroup.POST("/manual", admin.AddProbeTarget)
+			probeGroup.POST("/clash/discover", admin.DiscoverClashTargets)
+		}
+
 	}
 
 	public.Static(r.Group("/"), func(handlers ...gin.HandlerFunc) {

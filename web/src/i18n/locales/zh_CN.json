@@ -429,6 +429,54 @@
     "title": "延迟监测",
     "type": "类型"
   },
+  "probes": {
+    "title": "探针",
+    "description": "为节点添加 ICMP / TCP / HTTP 探测目标，支持手动添加或从 Clash/mihomo 当前活跃连接中批量导入。",
+    "tabs": {
+      "manual": "手动添加",
+      "clash": "Clash 助手"
+    },
+    "fields": {
+      "target": "目标",
+      "name": "名称（可选）",
+      "type": "协议",
+      "interval": "间隔（秒）",
+      "clients": "目标节点"
+    },
+    "placeholders": {
+      "name": "留空自动生成"
+    },
+    "hints": {
+      "target": "host → ICMP；host:port → TCP；带 http:// 前缀 → HTTP"
+    },
+    "type": {
+      "auto": "自动识别"
+    },
+    "actions": {
+      "add": "添加监控"
+    },
+    "errors": {
+      "target_required": "请输入目标",
+      "no_clients": "请至少选择一个节点",
+      "no_targets": "请至少选择一个目标"
+    },
+    "toast": {
+      "created": "已添加新探测",
+      "merged": "已合并到现有探测"
+    },
+    "clash": {
+      "controller": "Clash / mihomo controller URL",
+      "secret": "Secret（可选）",
+      "scan": "扫描连接",
+      "scanning": "扫描中...",
+      "results": "扫描结果",
+      "empty": "Clash 当前无活跃连接",
+      "hint": "运行 Clash 的机器需要开放 external-controller，secret 在 config.yaml 的 secret 字段。常见值：http://127.0.0.1:9090（本机）",
+      "added": "成功添加 {{count}} 个",
+      "failed": "{{count}} 个失败",
+      "add_selected": "添加选中 {{count}} 个"
+    }
+  },
   "pwa": {
     "browser": "浏览器模式",
     "can_install": "可以安装",
