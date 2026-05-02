@@ -10,14 +10,15 @@ import (
 	"github.com/komari-monitor/komari/database/tasks"
 )
 
-// POST body: clients []string, target, task_type string, interval int
+// POST body: clients []string, target, task_type string, interval int, cover int
 func AddPingTask(c *gin.Context) {
 	var req struct {
-		Clients  []string `json:"clients" binding:"required"`
+		Clients  []string `json:"clients"`
 		Name     string   `json:"name" binding:"required"`
 		Target   string   `json:"target" binding:"required"`
 		TaskType string   `json:"type" binding:"required"`     // icmp, tcp, http
 		Interval int      `json:"interval" binding:"required"` // 间隔时间，单位秒
+		Cover    int      `json:"cover"`                       // 0=指定, 1=全部, 2=排除
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -25,7 +26,7 @@ func AddPingTask(c *gin.Context) {
 		return
 	}
 
-	if taskID, err := tasks.AddPingTask(req.Clients, req.Name, req.Target, req.TaskType, req.Interval); err != nil {
+	if taskID, err := tasks.AddPingTask(req.Clients, req.Name, req.Target, req.TaskType, req.Interval, req.Cover); err != nil {
 		api.RespondError(c, http.StatusInternalServerError, err.Error())
 	} else {
 		api.RespondSuccess(c, gin.H{"task_id": taskID})

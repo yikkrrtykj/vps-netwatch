@@ -9,10 +9,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func AddPingTask(clients []string, name string, target, task_type string, interval int) (uint, error) {
+func AddPingTask(clients []string, name string, target, task_type string, interval, cover int) (uint, error) {
 	db := dbcore.GetDBInstance()
 	task := models.PingTask{
 		Clients:  clients,
+		Cover:    cover,
 		Name:     name,
 		Type:     task_type,
 		Target:   target,
@@ -54,7 +55,9 @@ func DeletePingTask(id []uint) error {
 func EditPingTask(tasks []*models.PingTask) error {
 	db := dbcore.GetDBInstance()
 	for _, task := range tasks {
-		result := db.Model(&models.PingTask{}).Where("id = ?", task.Id).Updates(task)
+		// Select("*") 让 GORM 写入所有字段（包括 zero value 如 Cover=0），
+		// 否则把 Cover 从 1 改回 0 会被默认的"忽略 zero value"逻辑吞掉。
+		result := db.Model(&models.PingTask{}).Where("id = ?", task.Id).Select("*").Updates(task)
 		if result.RowsAffected == 0 {
 			return gorm.ErrRecordNotFound
 		}

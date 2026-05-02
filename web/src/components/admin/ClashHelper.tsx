@@ -7,6 +7,7 @@ import {
   Card,
   Badge,
   Checkbox,
+  Select,
 } from "@radix-ui/themes";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -24,6 +25,8 @@ type ClashTarget = {
   count: number;
 };
 
+type CoverMode = "all" | "include" | "exclude";
+
 const ClashHelper: React.FC = () => {
   const { t } = useTranslation();
   const { nodeList } = useNodeList();
@@ -34,16 +37,23 @@ const ClashHelper: React.FC = () => {
   const [targets, setTargets] = React.useState<ClashTarget[]>([]);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [interval, setInterval] = React.useState(60);
+  const [cover, setCover] = React.useState<CoverMode>("all");
   const [selectedClients, setSelectedClients] = React.useState<Set<string>>(
     new Set(),
   );
 
-  // 默认所有节点都接收新探测
+  // include 默认全选，exclude 默认空
   React.useEffect(() => {
-    if (nodeList && selectedClients.size === 0) {
+    if (!nodeList) return;
+    if (cover === "include" && selectedClients.size === 0) {
       setSelectedClients(new Set(nodeList.map((n) => n.uuid)));
     }
-  }, [nodeList]);
+    if (cover === "exclude") {
+      setSelectedClients(new Set());
+    }
+  }, [cover, nodeList]);
+
+  const coverNumber = cover === "all" ? 1 : cover === "exclude" ? 2 : 0;
 
   const scan = async () => {
     setScanning(true);
@@ -112,7 +122,7 @@ const ClashHelper: React.FC = () => {
       );
       return;
     }
-    if (selectedClients.size === 0) {
+    if (cover === "include" && selectedClients.size === 0) {
       toast.error(
         t("probes.errors.no_clients", { defaultValue: "请至少选择一个节点" }),
       );
@@ -136,6 +146,7 @@ const ClashHelper: React.FC = () => {
             type: tgt.type,
             interval,
             clients: Array.from(selectedClients),
+            cover: coverNumber,
           }),
         });
         if (!res.ok) {
@@ -309,11 +320,36 @@ const ClashHelper: React.FC = () => {
                     }
                   />
                 </div>
+                <div style={{ width: 220 }}>
+                  <Text as="label" size="2" weight="medium">
+                    {t("probes.fields.cover", { defaultValue: "覆盖范围" })}
+                  </Text>
+                  <Select.Root
+                    value={cover}
+                    onValueChange={(v) => setCover(v as CoverMode)}
+                  >
+                    <Select.Trigger style={{ width: "100%" }} />
+                    <Select.Content>
+                      <Select.Item value="all">
+                        {t("probes.cover.all", { defaultValue: "全部节点（自动包含新加节点）" })}
+                      </Select.Item>
+                      <Select.Item value="include">
+                        {t("probes.cover.include", { defaultValue: "仅指定节点" })}
+                      </Select.Item>
+                      <Select.Item value="exclude">
+                        {t("probes.cover.exclude", { defaultValue: "排除指定节点" })}
+                      </Select.Item>
+                    </Select.Content>
+                  </Select.Root>
+                </div>
               </Flex>
+              {cover !== "all" && (
               <div>
                 <Flex justify="between" align="center" mb="2">
                   <Text size="2" weight="medium">
-                    {t("probes.fields.clients", { defaultValue: "目标节点" })}
+                    {cover === "include"
+                      ? t("probes.fields.clients", { defaultValue: "目标节点" })
+                      : t("probes.fields.excluded_clients", { defaultValue: "排除节点" })}
                     <Text size="1" color="gray" ml="2">
                       ({selectedClients.size}/{nodeList?.length ?? 0})
                     </Text>
@@ -370,6 +406,7 @@ const ClashHelper: React.FC = () => {
                   ))}
                 </div>
               </div>
+              )}
               <Flex justify="end">
                 <Button onClick={submit} disabled={submitting}>
                   {submitting

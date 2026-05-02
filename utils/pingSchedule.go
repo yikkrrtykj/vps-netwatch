@@ -90,7 +90,15 @@ func executePingTask(ctx context.Context, task models.PingTask, onlineClients ma
 	message.Type = task.Type
 	message.Target = task.Target
 
-	for _, clientUUID := range task.Clients {
+	// 根据 Cover 字段决定实际作用的 client 列表。
+	// 这里以"当前在线 client"作为全集，避免向已离线节点发送。
+	allOnlineUUIDs := make([]string, 0, len(onlineClients))
+	for uuid := range onlineClients {
+		allOnlineUUIDs = append(allOnlineUUIDs, uuid)
+	}
+	targetUUIDs := task.EffectiveClients(allOnlineUUIDs)
+
+	for _, clientUUID := range targetUUIDs {
 		select {
 		case <-ctx.Done():
 			// Context was canceled, stop sending pings.

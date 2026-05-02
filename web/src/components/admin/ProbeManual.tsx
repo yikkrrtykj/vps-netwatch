@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { useNodeList } from "@/contexts/NodeListContext";
 
 type ProbeType = "auto" | "icmp" | "tcp" | "http";
+type CoverMode = "all" | "include" | "exclude";
 
 const ProbeManual: React.FC = () => {
   const { t } = useTranslation();
@@ -21,17 +22,23 @@ const ProbeManual: React.FC = () => {
   const [name, setName] = React.useState("");
   const [type, setType] = React.useState<ProbeType>("auto");
   const [interval, setInterval] = React.useState(60);
+  const [cover, setCover] = React.useState<CoverMode>("all");
   const [selectedClients, setSelectedClients] = React.useState<Set<string>>(
     new Set(),
   );
   const [submitting, setSubmitting] = React.useState(false);
 
-  // 默认全选
+  // include 模式默认全选；exclude 模式默认空
   React.useEffect(() => {
-    if (nodeList && selectedClients.size === 0) {
+    if (!nodeList) return;
+    if (cover === "include" && selectedClients.size === 0) {
       setSelectedClients(new Set(nodeList.map((n) => n.uuid)));
     }
-  }, [nodeList]);
+    if (cover === "exclude") {
+      // 切到排除时清空
+      setSelectedClients(new Set());
+    }
+  }, [cover, nodeList]);
 
   const toggleAll = (on: boolean) => {
     if (!nodeList) return;
@@ -47,12 +54,14 @@ const ProbeManual: React.FC = () => {
     });
   };
 
+  const coverNumber = cover === "all" ? 1 : cover === "exclude" ? 2 : 0;
+
   const submit = async () => {
     if (!target.trim()) {
       toast.error(t("probes.errors.target_required", { defaultValue: "请输入目标" }));
       return;
     }
-    if (selectedClients.size === 0) {
+    if (cover === "include" && selectedClients.size === 0) {
       toast.error(
         t("probes.errors.no_clients", { defaultValue: "请至少选择一个节点" }),
       );
@@ -69,6 +78,7 @@ const ProbeManual: React.FC = () => {
           type: type === "auto" ? "" : type,
           interval,
           clients: Array.from(selectedClients),
+          cover: coverNumber,
         }),
       });
       const text = await res.text();
@@ -160,12 +170,37 @@ const ProbeManual: React.FC = () => {
               }
             />
           </div>
+          <div style={{ width: 200 }}>
+            <Text as="label" size="2" weight="medium">
+              {t("probes.fields.cover", { defaultValue: "覆盖范围" })}
+            </Text>
+            <Select.Root
+              value={cover}
+              onValueChange={(v) => setCover(v as CoverMode)}
+            >
+              <Select.Trigger style={{ width: "100%" }} />
+              <Select.Content>
+                <Select.Item value="all">
+                  {t("probes.cover.all", { defaultValue: "全部节点（自动包含新加节点）" })}
+                </Select.Item>
+                <Select.Item value="include">
+                  {t("probes.cover.include", { defaultValue: "仅指定节点" })}
+                </Select.Item>
+                <Select.Item value="exclude">
+                  {t("probes.cover.exclude", { defaultValue: "排除指定节点" })}
+                </Select.Item>
+              </Select.Content>
+            </Select.Root>
+          </div>
         </Flex>
 
+        {cover !== "all" && (
         <Card>
           <Flex justify="between" align="center" mb="2">
             <Text size="2" weight="medium">
-              {t("probes.fields.clients", { defaultValue: "目标节点" })}
+              {cover === "include"
+                ? t("probes.fields.clients", { defaultValue: "目标节点" })
+                : t("probes.fields.excluded_clients", { defaultValue: "排除节点" })}
               <Text size="1" color="gray" ml="2">
                 ({selectedClients.size}/{nodeList?.length ?? 0})
               </Text>
@@ -218,6 +253,7 @@ const ProbeManual: React.FC = () => {
             ))}
           </div>
         </Card>
+        )}
 
         <Flex justify="end">
           <Button onClick={submit} disabled={submitting}>

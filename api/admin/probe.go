@@ -25,6 +25,8 @@ type probeTargetRequest struct {
 	Type     string   `json:"type"`
 	Interval int      `json:"interval"`
 	Clients  []string `json:"clients"`
+	// Cover 决定 Clients 字段如何解释：0=仅指定, 1=全部, 2=排除指定
+	Cover int `json:"cover"`
 }
 
 type clashDiscoverRequest struct {
@@ -76,12 +78,12 @@ func AddProbeTarget(c *gin.Context) {
 		interval = 5
 	}
 
-	clientIDs, err := normalizeProbeClients(req.Clients)
+	clientIDs, err := normalizeProbeClients(req.Clients, req.Cover)
 	if err != nil {
 		api.RespondError(c, http.StatusBadRequest, err.Error())
 		return
 	}
-	if len(clientIDs) == 0 {
+	if len(clientIDs) == 0 && req.Cover == 0 {
 		api.RespondError(c, http.StatusBadRequest, "no clients available")
 		return
 	}
@@ -102,8 +104,14 @@ func AddProbeTarget(c *gin.Context) {
 		if !strings.EqualFold(task.Type, taskType) || task.Target != target {
 			continue
 		}
+		// 同 target+type 已存在 → 合并 clients；如果新请求给了非默认 Cover，覆盖
 		mergedClients := mergeStringLists([]string(task.Clients), clientIDs)
-		if len(mergedClients) != len(task.Clients) {
+		needSave := len(mergedClients) != len(task.Clients)
+		if req.Cover != task.Cover {
+			task.Cover = req.Cover
+			needSave = true
+		}
+		if needSave {
 			task.Clients = models.StringArray(mergedClients)
 			if err := tasks.EditPingTask([]*models.PingTask{task}); err != nil {
 				api.RespondError(c, http.StatusInternalServerError, err.Error())
@@ -116,11 +124,12 @@ func AddProbeTarget(c *gin.Context) {
 			"type":    task.Type,
 			"target":  task.Target,
 			"clients": mergedClients,
+			"cover":   task.Cover,
 		})
 		return
 	}
 
-	taskID, err := tasks.AddPingTask(clientIDs, name, target, taskType, interval)
+	taskID, err := tasks.AddPingTask(clientIDs, name, target, taskType, interval, req.Cover)
 	if err != nil {
 		api.RespondError(c, http.StatusInternalServerError, err.Error())
 		return
@@ -131,6 +140,7 @@ func AddProbeTarget(c *gin.Context) {
 		"type":    taskType,
 		"target":  target,
 		"clients": clientIDs,
+		"cover":   req.Cover,
 	})
 }
 
@@ -321,11 +331,18 @@ func splitProbeHostPort(input string) (string, string, bool, error) {
 	return "", "", false, nil
 }
 
-func normalizeProbeClients(raw []string) ([]string, error) {
+func normalizeProbeClients(raw []string, cover int) ([]string, error) {
+	// Cover=1（全部）时 clients 可以为空——调度时会自动取所有节点
+	// Cover=2（排除）时 clients 是排除列表，可以为空（等价于 Cover=1）
+	if cover == 1 {
+		// 不需要存 clients 列表
+		return mergeStringLists(nil, raw), nil
+	}
 	if len(raw) > 0 {
 		return mergeStringLists(nil, raw), nil
 	}
 
+	// Cover=0 且未指定 clients → 默认全部节点
 	allClients, err := clients.GetAllClientBasicInfo()
 	if err != nil {
 		return nil, err
