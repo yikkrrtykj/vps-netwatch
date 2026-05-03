@@ -385,9 +385,28 @@ const Row = ({
               <label>{t("probes.fields.cover", { defaultValue: "覆盖范围" })}</label>
               <Select.Root
                 value={String(form.cover ?? 0)}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, cover: Number(v) }))
-                }
+                onValueChange={(v) => {
+                  const newCover = Number(v);
+                  setForm((f) => {
+                    let nextClients = f.clients;
+                    // 从 cover=1 切换出来时，clients 通常是空的（因为存储就是 []）。
+                    // 给一个合理初值：include 模式 → 当前所有节点；exclude 模式 → 空。
+                    if (
+                      f.cover === 1 &&
+                      newCover === 0 &&
+                      (!f.clients || f.clients.length === 0)
+                    ) {
+                      nextClients = nodeDetail.map((n) => n.uuid);
+                    }
+                    if (
+                      f.cover === 1 &&
+                      newCover === 2
+                    ) {
+                      nextClients = [];
+                    }
+                    return { ...f, cover: newCover, clients: nextClients };
+                  });
+                }}
               >
                 <Select.Trigger />
                 <Select.Content>
