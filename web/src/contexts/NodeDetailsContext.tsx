@@ -44,12 +44,22 @@ export const NodeDetailsProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const refresh = () => {
     fetch("/api/admin/client/list")
       .then((response) => response.json())
-      .then((data: NodeDetail[]) => {
-        setNodeDetail(data);
+      .then((data: NodeDetail[] | any) => {
+        // 后端正常时返回数组，错误时返回 {status,message} 对象。这里做防御，
+        // 否则后续组件里的 nodeDetail.map(...) 直接 throw "o.map is not a function"。
+        if (Array.isArray(data)) {
+          setNodeDetail(data);
+        } else {
+          setNodeDetail([]);
+          if (data && typeof data === "object" && data.message) {
+            setError(String(data.message));
+          }
+        }
         setIsLoading(false);
       })
       .catch((error) => {
         setError(error.message);
+        setNodeDetail([]);
         setIsLoading(false);
       });
   };

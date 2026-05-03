@@ -65,15 +65,16 @@ export const TaskView = ({ pingTasks }: { pingTasks: PingTask[] }) => {
 
   // 过滤已删除的节点
   const processedTasks = React.useMemo(() => {
-    if (!pingTasks)
+    if (!Array.isArray(pingTasks))
       return [] as (PingTask & {
         __allClientsDeleted?: boolean;
         __originalCount?: number;
       })[];
-    const nodeUuidSet = new Set(nodeDetail.map((n) => n.uuid));
+    const safeNodes = Array.isArray(nodeDetail) ? nodeDetail : [];
+    const nodeUuidSet = new Set(safeNodes.map((n) => n.uuid));
     return pingTasks
       .map((task) => {
-        const original = task.clients || [];
+        const original = Array.isArray(task.clients) ? task.clients : [];
         const existing = original.filter((uuid) => nodeUuidSet.has(uuid));
         const allDeleted = original.length > 0 && existing.length === 0;
         return {
