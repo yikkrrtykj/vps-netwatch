@@ -323,6 +323,42 @@ const PingChart = ({ uuid }: { uuid: string }) => {
     }));
   }, [remoteData, tasks]);
 
+  // 跨所有 task 的 KPI 总览：最佳延迟 / 平均延迟 / 最大丢包 / 最大抖动
+  const overview = useMemo(() => {
+    if (!latestValues.length) {
+      return { best: null as number | null, avg: 0, maxLoss: 0, maxJitter: 0 };
+    }
+    let best: number | null = null;
+    let avgWeightSum = 0;
+    let avgValueSum = 0;
+    let maxLoss = 0;
+    let maxJitter = 0;
+    for (const t of latestValues) {
+      if (typeof t.value === "number" && t.value >= 0) {
+        if (best === null || t.value < best) best = t.value;
+      }
+      if (typeof t.avg === "number" && t.avg > 0) {
+        const weight = typeof t.total === "number" && t.total > 0 ? t.total : 1;
+        avgWeightSum += weight;
+        avgValueSum += t.avg * weight;
+      }
+      if (typeof t.loss === "number" && t.loss > maxLoss) maxLoss = t.loss;
+      if (
+        typeof t.p99 === "number" &&
+        typeof t.p50 === "number" &&
+        t.p99 - t.p50 > maxJitter
+      ) {
+        maxJitter = t.p99 - t.p50;
+      }
+    }
+    return {
+      best,
+      avg: avgWeightSum > 0 ? avgValueSum / avgWeightSum : 0,
+      maxLoss,
+      maxJitter,
+    };
+  }, [latestValues]);
+
   const [hiddenLines, setHiddenLines] = useState<Record<string, boolean>>({});
   const handleLegendClick = useCallback((e: any) => {
     const key = e.dataKey;
@@ -378,6 +414,85 @@ const PingChart = ({ uuid }: { uuid: string }) => {
       {error && (
         <div style={{ color: "red", textAlign: "center", width: "100%" }}>
           {error}
+        </div>
+      )}
+      {!loading && !error && latestValues.length > 0 && (
+        <div
+          className="w-full max-w-[900px] grid gap-2"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}
+        >
+          <Card>
+            <Flex direction="column" gap="0" className="p-3">
+              <span className="text-xs text-muted-foreground">
+                {t("ping.overview.best", { defaultValue: "最佳延迟" })}
+              </span>
+              <span
+                className="text-xl font-bold"
+                style={{
+                  color:
+                    overview.best === null
+                      ? "var(--gray-9)"
+                      : overview.best > 200
+                        ? "var(--orange-11)"
+                        : "var(--green-11)",
+                }}
+              >
+                {overview.best === null ? "—" : `${Math.round(overview.best)} ms`}
+              </span>
+            </Flex>
+          </Card>
+          <Card>
+            <Flex direction="column" gap="0" className="p-3">
+              <span className="text-xs text-muted-foreground">
+                {t("ping.overview.avg", { defaultValue: "平均延迟" })}
+              </span>
+              <span className="text-xl font-bold">
+                {overview.avg > 0 ? `${Math.round(overview.avg)} ms` : "—"}
+              </span>
+            </Flex>
+          </Card>
+          <Card>
+            <Flex direction="column" gap="0" className="p-3">
+              <span className="text-xs text-muted-foreground">
+                {t("ping.overview.max_loss", { defaultValue: "最大丢包" })}
+              </span>
+              <span
+                className="text-xl font-bold"
+                style={{
+                  color:
+                    overview.maxLoss > 5
+                      ? "var(--red-11)"
+                      : overview.maxLoss > 0
+                        ? "var(--orange-11)"
+                        : "var(--green-11)",
+                }}
+              >
+                {overview.maxLoss > 0
+                  ? `${overview.maxLoss.toFixed(overview.maxLoss >= 10 ? 0 : 1)}%`
+                  : "0%"}
+              </span>
+            </Flex>
+          </Card>
+          <Card>
+            <Flex direction="column" gap="0" className="p-3">
+              <span className="text-xs text-muted-foreground">
+                {t("ping.overview.max_jitter", { defaultValue: "最大抖动" })}
+              </span>
+              <span
+                className="text-xl font-bold"
+                style={{
+                  color:
+                    overview.maxJitter > 60
+                      ? "var(--orange-11)"
+                      : "var(--gray-12)",
+                }}
+              >
+                {overview.maxJitter > 0
+                  ? `${Math.round(overview.maxJitter)} ms`
+                  : "—"}
+              </span>
+            </Flex>
+          </Card>
         </div>
       )}
       {latestValues.length > 0 ? (
